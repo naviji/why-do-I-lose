@@ -9,18 +9,25 @@ if (!path) throw new Error('usage: add-engine-lines <candidates.json> [depth]')
 const depth = Number(depthArg ?? 18)
 const candidates = JSON.parse(readFileSync(path, 'utf8'))
 
-const engine = startEngine()
+// The WASM engine dies after a few dozen searches in one process, so restart it regularly.
+const RESTART_EVERY = 10
+let engine = startEngine()
 await engine.init()
 let done = 0
 for (const c of candidates) {
   if (c.line && c.engine?.depth === depth) continue
+  if (done > 0 && done % RESTART_EVERY === 0) {
+    engine.quit()
+    engine = startEngine()
+    await engine.init()
+  }
   const after = await engine.analyse(c.fen, [c.move], depth)
   const before = await engine.analyse(c.fen, [], depth)
   c.line = after.pv
   c.lineScore = after.score
   c.better = before.bestmove
   c.engine = { build: ENGINE_BUILD, depth }
-  if (++done % 20 === 0) {
+  if (++done % RESTART_EVERY === 0) {
     writeFileSync(path, JSON.stringify(candidates, null, 2) + '\n')
     console.log(`${done} analysed`)
   }
