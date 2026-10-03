@@ -29,7 +29,7 @@ for (const c of candidates) {
   const puzzle = make(c.fen, [c.move, ...line], cp)
   c.tags = cook(puzzle).filter((t: string) => !META.has(t))
   // a threat already on the board is a missed defence, not something the move left hanging
-  if (defensiveMove({ fen: c.fen, move: c.move, line })) {
+  if (defensiveMove({ fen: c.fen, move: c.move, line, better: c.better })) {
     c.tags = c.tags.filter((t: string) => t !== 'hangingPiece')
     c.tags.push('defensiveMove')
   } else if (hangingPawn(puzzle)) c.tags.push('hangingPawn')

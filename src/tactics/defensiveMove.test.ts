@@ -6,7 +6,7 @@ describe('defensiveMove (the threat was already there and the move did not meet 
     // kramford game pW60Sss4, move 18: Nc4 Ra8 Nxb6 worked before Re8 too; d5 was needed
     const fen = '2b2rk1/1p1p1pbp/1p2pnp1/rB6/3NP3/N1P2P2/PP4PP/R2R2K1 b - - 4 18'
     const line = ['a3c4', 'a5a8', 'c4b6', 'a8b8', 'a2a4', 'e8d8', 'a4a5', 'd7d5', 'e4d5', 'f6d5']
-    expect(defensiveMove({ fen, move: 'f8e8', line })).toBe(true)
+    expect(defensiveMove({ fen, move: 'f8e8', line, better: 'd7d5' })).toBe(true)
   })
 
   it('flags leaving an attacked piece where it is', () => {
@@ -38,5 +38,14 @@ describe('defensiveMove (the threat was already there and the move did not meet 
     // kramford game L4uuQv4z, move 18: with the pawn still on e7, Bxf6 exf6 wins nothing
     const fen = '2r1r1k1/3qppbp/p1n2np1/1p4B1/1N1P4/P1P2Q1P/BP3PP1/R3R1K1 b - - 1 18'
     expect(defensiveMove({ fen, move: 'e7e6', line: ['g5f6', 'g7f6', 'f3f6', 'a6a5', 'b4d3', 'b5b4', 'd3c5'] })).toBe(false)
+  })
+
+  it('ignores a threat the best move could not stop either', () => {
+    // Nd5 is attacked; the best move (here Ke7, standing in for any) leaves it en prise too
+    expect(defensiveMove({ fen: '4k3/8/8/3n4/8/2N5/8/4K3 b - - 0 1', move: 'e8e7', line: ['c3d5', 'e7d6'], better: 'e8d8' })).toBe(false)
+  })
+
+  it('flags it when the best move does stop the threat', () => {
+    expect(defensiveMove({ fen: '4k3/8/8/3n4/8/2N5/8/4K3 b - - 0 1', move: 'e8e7', line: ['c3d5', 'e7d6'], better: 'd5e7' })).toBe(true)
   })
 })

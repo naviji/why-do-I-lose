@@ -9,7 +9,11 @@ import { MAX_FORCING } from './hangingPawn'
 import { nullMove } from './threat'
 import { materialDiff } from './util'
 
-export function defensiveMove({ fen, move, line }: { fen: string; move: string; line: string[] }): boolean {
+/**
+ * `better` is the engine's best move instead of `move`. When given, it must stop the
+ * threat: a threat that still works after the best move was never the player's to parry.
+ */
+export function defensiveMove({ fen, move, line, better }: { fen: string; move: string; line: string[]; better?: string }): boolean {
   const before = Board.fromFen(fen)
   const player = before.turn
   const start = materialDiff(before, player)
@@ -18,14 +22,27 @@ export function defensiveMove({ fen, move, line }: { fen: string; move: string; 
   if (start - materialDiff(real, player) < 1) return false
 
   const passed = nullMove(before)
-  if (!passed) return false
-  // replay the line up to the opponent's first capture, and judge that capture on the
-  // count rather than by the line's own replies, which were chosen for a different position
+  if (!passed || !threatWins(passed, line)) return false
+  if (!better) return true
+  const defended = before.copy()
+  defended.push(parseUci(better) as Move)
+  return !threatWins(defended, line)
+}
+
+/**
+ * Replays the line up to the opponent's first capture (opponent to move in `board`) and
+ * judges that capture on the count, not by the line's own replies, which were chosen
+ * for a different position.
+ */
+function threatWins(board: Board, line: string[]): boolean {
+  const b = board.copy()
   for (let i = 0; i < line.length && i <= 2 * MAX_FORCING; i++) {
     const m = parseUci(line[i]!) as Move
-    if (!passed.legalMoves().some(l => l.from === m.from && l.to === m.to && l.promotion === m.promotion)) return false
-    if (i % 2 === 0 && passed.isCapture(m)) return see(passed, m) > 0
-    passed.push(m)
+    if (!b.legalMoves().some(l => l.from === m.from && l.to === m.to && l.promotion === m.promotion)) return false
+    if (i % 2 === 0 && b.isCapture(m)) return see(b, m) > 0
+    b.push(m)
+    // the player can simply win the piece that just moved (after d5, Nc4 is met by dxc4)
+    if (i % 2 === 0 && b.legalMoves().some(r => r.to === m.to && see(b, r) > 0)) return false
   }
   return false
 }
