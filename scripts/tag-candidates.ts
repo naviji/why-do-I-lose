@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { cook } from '../src/tactics/cook'
 import { make } from '../src/tactics/puzzle'
 import { losingExchange } from '../src/tactics/exchange'
+import { hangingPawn } from '../src/tactics/hangingPawn'
 
 const MAX_PLIES = 12
 const META = new Set(['equality', 'advantage', 'crushing', 'oneMove', 'short', 'long', 'veryLong'])
@@ -23,7 +24,9 @@ for (const c of candidates) {
   }
   const s = c.lineScore
   const cp = 'mate' in s ? (s.mate > 0 ? 999999 : -999999) : s.cp
-  c.tags = cook(make(c.fen, [c.move, ...line], cp)).filter((t: string) => !META.has(t))
+  const puzzle = make(c.fen, [c.move, ...line], cp)
+  c.tags = cook(puzzle).filter((t: string) => !META.has(t))
+  if (hangingPawn(puzzle)) c.tags.push('hangingPawn')
   if (losingExchange({ fen: c.fen, move: c.move, line })) c.tags.push('losingExchange')
   for (const t of c.tags) counts[t] = (counts[t] ?? 0) + 1
 }
