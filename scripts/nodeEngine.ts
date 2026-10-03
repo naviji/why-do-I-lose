@@ -34,6 +34,8 @@ export function startEngine() {
       let last: UciInfo | null = null
       let bestmove: string | null = null
       send('ucinewgame')
+      send('isready')
+      await until(l => l === 'readyok')
       send(`position fen ${fen}${moves.length ? ' moves ' + moves.join(' ') : ''}`)
       send(`go depth ${depth}`)
       await until(
