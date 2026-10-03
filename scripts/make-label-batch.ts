@@ -1,4 +1,4 @@
-// Usage: npx tsx scripts/make-label-batch.ts <candidates.json> <out.md>
+// Usage: npx tsx scripts/make-label-batch.ts <candidates.json> <out.md> [keep.md]
 // Writes a markdown table of candidates for hand-labeling: up to PER_TAG examples
 // per motif plus a few untagged ones. Only candidates that leave the player losing
 // by Stockfish's eval (below DEFAULT_LOSING_BELOW) are included.
@@ -15,8 +15,9 @@ const UNTAGGED = 10
 // position descriptions rather than mistakes
 const IGNORE = new Set(['castling', 'quietMove', 'mateIn1', 'mateIn2', 'mateIn3', 'mateIn4', 'mateIn5', 'rookEndgame', 'bishopEndgame', 'knightEndgame', 'pawnEndgame', 'queenEndgame', 'queenRookEndgame', 'promotion', 'enPassant'])
 
-const [inPath, outPath] = process.argv.slice(2)
-if (!inPath || !outPath) throw new Error('usage: make-label-batch <candidates.json> <out.md>')
+// Pass a previous batch as <keep.md> to keep its rows, so row numbers people refer to stay put.
+const [inPath, outPath, keepPath] = process.argv.slice(2)
+if (!inPath || !outPath) throw new Error('usage: make-label-batch <candidates.json> <out.md> [keep.md]')
 const all = JSON.parse(readFileSync(inPath, 'utf8'))
 
 // lineScore is from the opponent's (side to move) point of view
@@ -35,6 +36,11 @@ all.forEach((x: any, i: number) => {
     for (const t of m) per[t] = (per[t] ?? 0) + 1
   }
 })
+
+if (keepPath) {
+  const kept = [...readFileSync(keepPath, 'utf8').matchAll(/^\| (\d+) \|/gm)].map(m => Number(m[1]))
+  picked.splice(0, picked.length, ...[...new Set([...kept, ...picked])].sort((a, b) => a - b))
+}
 
 const sanLine = (x: any) => {
   const pos = positionFromFen(x.fen)
