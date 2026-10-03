@@ -35,9 +35,14 @@ describe('hangingPawn', () => {
     expect(hangingPawn(make(fen, 'f8e8 a3c4 a5a8 c4b6 a8b8 a2a4 e8d8 a4a5 d7d5 e4d5 f6d5'))).toBe(true)
   })
 
+  it('flags a pawn won after a discovered threat', () => {
+    // e5 uncovers the rook on h4, then Rxh4
+    expect(hangingPawn(make('2k5/8/8/8/R3P2p/8/8/6K1 b - - 0 1', 'c8d8 e4e5 d8e7 a4h4 e7e6'))).toBe(true)
+  })
+
   it('ignores a pawn won after a non-forcing move', () => {
-    // e5 attacks nothing; it only opens the rank for Rxh4, a quiet plan, not a tempo move
-    expect(hangingPawn(make('2k5/8/8/8/R3P2p/8/8/6K1 b - - 0 1', 'c8d8 e4e5 d8e7 a4h4 e7e6'))).toBe(false)
+    // Kh1 threatens nothing; the pawn is lost to the player's own later c4, not to m
+    expect(hangingPawn(make('2k5/8/8/2p5/8/3P4/8/6K1 b - - 0 1', 'c8d8 g1h1 c5c4 d3c4 d8e7'))).toBe(false)
   })
 
   it('stops after more than two forcing moves', () => {

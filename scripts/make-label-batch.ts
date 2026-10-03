@@ -13,7 +13,7 @@ import { DEFAULT_LOSING_BELOW } from '../src/core/criticalMoves'
 const PER_TAG = 6
 const UNTAGGED = 10
 // position descriptions rather than mistakes
-const IGNORE = new Set(['castling', 'quietMove', 'defensiveMove', 'mateIn1', 'mateIn2', 'mateIn3', 'mateIn4', 'mateIn5', 'rookEndgame', 'bishopEndgame', 'knightEndgame', 'pawnEndgame', 'queenEndgame', 'queenRookEndgame', 'promotion', 'enPassant'])
+const IGNORE = new Set(['castling', 'quietMove', 'mateIn1', 'mateIn2', 'mateIn3', 'mateIn4', 'mateIn5', 'rookEndgame', 'bishopEndgame', 'knightEndgame', 'pawnEndgame', 'queenEndgame', 'queenRookEndgame', 'promotion', 'enPassant'])
 
 const [inPath, outPath] = process.argv.slice(2)
 if (!inPath || !outPath) throw new Error('usage: make-label-batch <candidates.json> <out.md>')

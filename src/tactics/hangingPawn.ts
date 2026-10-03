@@ -1,15 +1,16 @@
 // "Hanging pawn": cook.py's hanging_piece deliberately skips pawns. This mirrors it
 // for pawns, and requires the engine line to leave the player a pawn down.
 //
-// The opponent may first make up to MAX_FORCING forcing moves (a check, or an attack
-// on a loose player piece) before taking the pawn, e.g. Nc4 hitting a rook, Ra8, Nxb6.
+// The opponent may first make up to MAX_FORCING forcing moves before taking the pawn:
+// a check, or a move that threatens to win material (Nc4 hitting a rook, Ra8, Nxb6).
 import type { Board } from './board'
 import type { ChildNode, Puzzle } from './puzzle'
+import { winningCaptures } from './threat'
 import { isHanging, isInBadSpot, materialDiff } from './util'
 
 export const MAX_FORCING = 2
 
-/** The opponent's move gives check or attacks a loose player piece. */
+/** The opponent's move gives check, attacks a loose player piece, or threatens a winning capture. */
 function isForcing(node: ChildNode, pov: Board['turn']): boolean {
   const after = node.board()
   if (after.isCheck()) return true
@@ -17,7 +18,7 @@ function isForcing(node: ChildNode, pov: Board['turn']): boolean {
     const piece = after.pieceAt(sq)
     if (piece && piece.color !== pov && piece.role !== 'king' && isInBadSpot(after, sq)) return true
   }
-  return false
+  return winningCaptures(after, pov).length > 0
 }
 
 export function hangingPawn(puzzle: Puzzle): boolean {

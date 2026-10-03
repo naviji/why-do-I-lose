@@ -6,9 +6,11 @@ import { cook } from '../src/tactics/cook'
 import { make } from '../src/tactics/puzzle'
 import { counting } from '../src/tactics/exchange'
 import { hangingPawn } from '../src/tactics/hangingPawn'
+import { defensiveMove } from '../src/tactics/defensiveMove'
 
 const MAX_PLIES = 12
-const META = new Set(['equality', 'advantage', 'crushing', 'oneMove', 'short', 'long', 'veryLong'])
+// cook.py's defensiveMove describes the opponent's solution; ours (below) describes the player's move
+const META = new Set(['defensiveMove', 'equality', 'advantage', 'crushing', 'oneMove', 'short', 'long', 'veryLong'])
 
 const [path] = process.argv.slice(2)
 if (!path) throw new Error('usage: tag-candidates <candidates.json>')
@@ -26,7 +28,11 @@ for (const c of candidates) {
   const cp = 'mate' in s ? (s.mate > 0 ? 999999 : -999999) : s.cp
   const puzzle = make(c.fen, [c.move, ...line], cp)
   c.tags = cook(puzzle).filter((t: string) => !META.has(t))
-  if (hangingPawn(puzzle)) c.tags.push('hangingPawn')
+  // a threat already on the board is a missed defence, not something the move left hanging
+  if (defensiveMove({ fen: c.fen, move: c.move, line })) {
+    c.tags = c.tags.filter((t: string) => t !== 'hangingPiece')
+    c.tags.push('defensiveMove')
+  } else if (hangingPawn(puzzle)) c.tags.push('hangingPawn')
   if (counting({ fen: c.fen, move: c.move, line })) c.tags.push('counting')
   for (const t of c.tags) counts[t] = (counts[t] ?? 0) + 1
 }
