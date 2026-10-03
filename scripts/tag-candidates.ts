@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { cook } from '../src/tactics/cook'
 import { make } from '../src/tactics/puzzle'
-import { losingExchange } from '../src/tactics/exchange'
+import { counting } from '../src/tactics/exchange'
 import { hangingPawn } from '../src/tactics/hangingPawn'
 
 const MAX_PLIES = 12
@@ -27,7 +27,7 @@ for (const c of candidates) {
   const puzzle = make(c.fen, [c.move, ...line], cp)
   c.tags = cook(puzzle).filter((t: string) => !META.has(t))
   if (hangingPawn(puzzle)) c.tags.push('hangingPawn')
-  if (losingExchange({ fen: c.fen, move: c.move, line })) c.tags.push('losingExchange')
+  if (counting({ fen: c.fen, move: c.move, line })) c.tags.push('counting')
   for (const t of c.tags) counts[t] = (counts[t] ?? 0) + 1
 }
 writeFileSync(path, JSON.stringify(candidates, null, 2) + '\n')

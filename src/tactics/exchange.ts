@@ -1,8 +1,8 @@
-// "Losing exchange": the player's capture starts an exchange that loses material.
-// Not a lichess-puzzler motif (cook.py only looks at the opponent's reply).
+// "Counting": an exchange that loses on the count, started by the player's capture
+// or by the opponent's reply. Not a lichess-puzzler motif.
 import { makeSquare, opposite, parseUci } from 'chessops/util'
 import { Board, type Move, type Role, type Square } from './board'
-import { materialDiff } from './util'
+import { isHanging, materialDiff } from './util'
 
 const VALUE: Record<Role, number> = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 100 }
 const ORDER: Role[] = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king']
@@ -41,27 +41,53 @@ export function see(board: Board, move: Move): number {
   return gain[0]!
 }
 
-export interface LosingExchange {
+export interface Counting {
   square: string
-  /** Exchange count on the square, in pawns (negative). */
+  /** Exchange count on the square, in pawns, for whoever starts it. */
   see: number
   /** Material the player is down at the end of the engine line, versus before the move. */
   materialLost: number
+  /** Who starts the exchange: the player's move itself, or the opponent's first reply. */
+  by: 'player' | 'opponent'
 }
 
-/** The player's move `move` from `fen`, followed by the opponent's best `line`. */
-export function losingExchange({ fen, move, line }: { fen: string; move: string; line: string[] }): LosingExchange | null {
+/**
+ * "Counting": material lost on an exchange that loses on the count.
+ * Either the player's move `move` is a capture that loses on the count, or the
+ * opponent's first reply captures a defended player piece and wins on the count
+ * (an undefended piece is cook.py's hanging piece instead).
+ */
+export function counting({ fen, move, line }: { fen: string; move: string; line: string[] }): Counting | null {
   const board = Board.fromFen(fen)
   const player = board.turn
   const m = parseUci(move) as Move
+  const result = playerStarts(board, m) ?? opponentStarts(board, m, line)
+  if (!result) return null
+  const end = board.copy()
+  end.push(m)
+  for (const uci of line) end.push(parseUci(uci) as Move)
+  const materialLost = materialDiff(board, player) - materialDiff(end, player)
+  if (materialLost < 1) return null
+  return { ...result, materialLost }
+}
+
+type Start = Omit<Counting, 'materialLost'>
+
+function playerStarts(board: Board, m: Move): Start | null {
   if (!board.isCapture(m)) return null
   const count = see(board, m)
-  if (count >= 0) return null
-  const before = materialDiff(board, player)
+  return count < 0 ? { square: makeSquare(m.to), see: count, by: 'player' } : null
+}
+
+function opponentStarts(board: Board, m: Move, line: string[]): Start | null {
+  if (!line[0] || board.isCapture(m)) return null
   const after = board.copy()
   after.push(m)
-  for (const uci of line) after.push(parseUci(uci) as Move)
-  const materialLost = before - materialDiff(after, player)
-  if (materialLost < 1) return null
-  return { square: makeSquare(m.to), see: count, materialLost }
+  if (after.isCheck()) return null
+  const reply = parseUci(line[0]) as Move
+  if (!after.isCapture(reply)) return null
+  const target = after.pieceAt(reply.to)
+  if (!target || isHanging(after, target, reply.to)) return null
+  const count = see(after, reply)
+  return count > 0 ? { square: makeSquare(reply.to), see: count, by: 'opponent' } : null
 }
