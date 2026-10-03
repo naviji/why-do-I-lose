@@ -28,4 +28,20 @@ describe('hangingPawn', () => {
     // d7+ Kxd7: the king has to deal with the check
     expect(hangingPawn(make('4k3/8/3P4/8/8/8/8/4K3 w - - 0 1', 'd6d7 e8d7'))).toBe(false)
   })
+
+  it('flags a pawn won after a tempo move on a loose piece', () => {
+    // kramford, move 18: Re8 lets Nc4 hit the a5 rook, Ra8, Nxb6 wins the pawn
+    const fen = '2b2rk1/1p1p1pbp/1p2pnp1/rB6/3NP3/N1P2P2/PP4PP/R2R2K1 b - - 4 18'
+    expect(hangingPawn(make(fen, 'f8e8 a3c4 a5a8 c4b6 a8b8 a2a4 e8d8 a4a5 d7d5 e4d5 f6d5'))).toBe(true)
+  })
+
+  it('ignores a pawn won after a non-forcing move', () => {
+    // e5 attacks nothing; it only opens the rank for Rxh4, a quiet plan, not a tempo move
+    expect(hangingPawn(make('2k5/8/8/8/R3P2p/8/8/6K1 b - - 0 1', 'c8d8 e4e5 d8e7 a4h4 e7e6'))).toBe(false)
+  })
+
+  it('stops after more than two forcing moves', () => {
+    // three checks before the capture: a long combination, not a hanging pawn
+    expect(hangingPawn(make('k7/8/8/8/8/8/1p6/R5K1 b - - 0 1', 'a8b7 a1a7 b7b6 a7a6 b6b5 a6a5 b5b4 a5b5 b4c3 b5b2'))).toBe(false)
+  })
 })
