@@ -4,6 +4,7 @@ import { createInterface } from 'node:readline'
 import { createRequire } from 'node:module'
 import { parseInfo, type UciInfo } from '../src/engine/uci'
 
+export const MAX_NODES = 2_000_000
 export const ENGINE_BUILD = 'stockfish/bin/stockfish-19-lite-single.js'
 
 export function startEngine() {
@@ -29,15 +30,16 @@ export function startEngine() {
       send('isready')
       await until(l => l === 'readyok')
     },
-    /** Searches `fen` (+ `moves`) to `depth`; the score is for the side to move there. */
-    async analyse(fen: string, moves: string[], depth: number): Promise<UciInfo & { bestmove: string | null }> {
+    /** Searches `fen` (+ `moves`) to `depth` or `maxNodes`, whichever comes first; the score is for the side to move there. */
+    async analyse(fen: string, moves: string[], depth: number, maxNodes = MAX_NODES): Promise<UciInfo & { bestmove: string | null }> {
       let last: UciInfo | null = null
       let bestmove: string | null = null
       send('ucinewgame')
       send('isready')
       await until(l => l === 'readyok')
       send(`position fen ${fen}${moves.length ? ' moves ' + moves.join(' ') : ''}`)
-      send(`go depth ${depth}`)
+      // The single-threaded WASM build can't read `stop` mid-search, so cap nodes too.
+      send(`go depth ${depth} nodes ${maxNodes}`)
       await until(
         l => l.startsWith('bestmove'),
         l => {

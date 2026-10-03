@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { parsePgn, startingPosition } from 'chessops/pgn'
 import { parseSan, makeSanAndPlay } from 'chessops/san'
 import { makeFen } from 'chessops/fen'
-import { makeUci } from 'chessops/util'
+import { standardUci } from '../src/core/uci'
 import type { Color } from 'chessops'
 import { evalsFromPgn } from '../src/import/pgnEvals'
 import { criticalEpisodes } from '../src/core/criticalMoves'
@@ -45,7 +45,7 @@ for (const game of parsePgn(readFileSync(pgnPath, 'utf8'))) {
         termination: h.get('Termination'),
         ply,
         fen,
-        move: makeUci(move),
+        move: standardUci(pos, move),
         san: node.san,
         evalBefore: evals[ply - 1],
         evalAfter: evals[ply],

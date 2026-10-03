@@ -2,7 +2,7 @@
 // For each candidate, stores the opponent's best line after the player's move
 // (`line`, `lineScore` from the opponent's POV) and the engine's best move instead (`better`).
 import { readFileSync, writeFileSync } from 'node:fs'
-import { startEngine, ENGINE_BUILD } from './nodeEngine'
+import { startEngine, ENGINE_BUILD, MAX_NODES } from './nodeEngine'
 
 const [path, depthArg] = process.argv.slice(2)
 if (!path) throw new Error('usage: add-engine-lines <candidates.json> [depth]')
@@ -21,16 +21,16 @@ for (const c of candidates) {
     engine = startEngine()
     await engine.init()
   }
+
   const after = await engine.analyse(c.fen, [c.move], depth)
   const before = await engine.analyse(c.fen, [], depth)
   c.line = after.pv
   c.lineScore = after.score
   c.better = before.bestmove
-  c.engine = { build: ENGINE_BUILD, depth }
-  if (++done % RESTART_EVERY === 0) {
-    writeFileSync(path, JSON.stringify(candidates, null, 2) + '\n')
-    console.log(`${done} analysed`)
-  }
+  c.engine = { build: ENGINE_BUILD, depth, maxNodes: MAX_NODES }
+  c.engine.depthReached = Math.min(after.depth, before.depth)
+  writeFileSync(path, JSON.stringify(candidates, null, 2) + '\n')
+  if (++done % RESTART_EVERY === 0) console.log(`${done} analysed`)
 }
 engine.quit()
 writeFileSync(path, JSON.stringify(candidates, null, 2) + '\n')
