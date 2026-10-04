@@ -21,7 +21,8 @@ for (const game of parsePgn(readFileSync(pgnPath, 'utf8'))) {
   const player: Color | null =
     h.get('White')?.toLowerCase() === user ? 'white' : h.get('Black')?.toLowerCase() === user ? 'black' : null
   const result = h.get('Result')
-  if (!player || result !== (player === 'white' ? '0-1' : '1-0')) continue
+  if (!player) continue
+  if (!process.env.ALL_GAMES && result !== (player === 'white' ? '0-1' : '1-0')) continue
   losses++
   const evals = evalsFromPgn(game)
   const episodes = criticalEpisodes(evals, player)
