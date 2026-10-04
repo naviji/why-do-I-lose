@@ -3,6 +3,7 @@
   import type { ResultFilter } from '../examples'
   import { categoryName, headline } from '../viewModel'
   import ExampleView from './ExampleView.svelte'
+  import GameQueue from './GameQueue.svelte'
   let { app, onremove, onfilter }: { app: AppState; onremove: (id: string) => void; onfilter: (f: ResultFilter) => void } = $props()
   let open = $state<string | null>(null)
   let max = $derived(Math.max(1, ...app.ranked.map(r => r.games)))
@@ -20,7 +21,7 @@
       <div class="empty">{#if app.error}<b class="error" role="alert">{app.error}</b>{/if}<b>Your results will appear here</b><span class="muted">Enter your username and press Import. First results show after a few games.</span></div>
     </div>
   {:else}
-    <h1>{title ?? (app.phase === 'done' ? 'No mistakes found in the analyzed games.' : 'Analyzing your games…')}</h1>
+    <h1>{title ?? (app.phase === 'analyzing' ? 'Analyzing your games… mistakes appear here as they are found.' : app.stats.analyzed ? 'No mistakes found in the analyzed games.' : 'Not analyzed yet.')}</h1>
     <div class="meta muted">
       <span>Categories overlap.</span>
       <select aria-label="Result" value={app.resultFilter} onchange={e => onfilter((e.currentTarget as HTMLSelectElement).value as ResultFilter)}>
@@ -31,6 +32,7 @@
       {/if}
     </div>
     {#if app.error}<p class="error" role="alert">{app.error}</p>{/if}
+    <GameQueue {app} />
     <div class="list">
       {#each app.ranked as r (r.category)}
         <div class="item">

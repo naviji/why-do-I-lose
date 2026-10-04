@@ -107,6 +107,19 @@ describe('appController', () => {
     expect(get(again.state).panelOpen).toBe(false)
   })
 
+  it('resumes analysis of unfinished games on restore, and lists each game with its status', async () => {
+    const { app, games, analyses } = setup()
+    await app.importAndAnalyze('lichess', 'kramford', defaultish)
+    app.stop()
+    await until(() => get(app.state).phase === 'done')
+    const again = createAppController({ http: http(), games, analyses, engine: async () => flatEngine, labels: memoryLabels() })
+    await again.restore()
+    await until(() => get(again.state).phase === 'done')
+    const queue = get(again.state).queue
+    expect(queue.length).toBeGreaterThan(0)
+    expect(queue.every(r => r.status === 'done')).toBe(true)
+  })
+
   it('reports an engine that will not load, and keeps the games', async () => {
     const { app } = setup(new EngineLoadError('no wasm'))
     await app.importAndAnalyze('lichess', 'kramford', defaultish)

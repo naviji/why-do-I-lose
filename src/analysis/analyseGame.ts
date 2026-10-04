@@ -44,7 +44,18 @@ export interface GameAnalysis {
   findings: Finding[]
 }
 
-export async function analyseGame(game: AnalysisGame, engine: Engine, settings: EngineSettings, signal: AbortSignal): Promise<GameAnalysis> {
+/** Where a game's analysis is: scanning every position for its score, then tagging each critical move. */
+export interface GameStep {
+  stage: 'scan' | 'tag'
+  done: number
+  total: number
+  /** Findings so far, so callers can show them before the game finishes. */
+  findings: Finding[]
+}
+
+export async function analyseGame(
+  game: AnalysisGame, engine: Engine, settings: EngineSettings, signal: AbortSignal, onStep?: (s: GameStep) => void,
+): Promise<GameAnalysis> {
   signal.throwIfAborted()
   const fens = positions(game.moves)
   const cache = new Map<number, EvalResult>()
@@ -57,11 +68,16 @@ export async function analyseGame(game: AnalysisGame, engine: Engine, settings: 
   let evals = game.evals
   if (!evals || evals.length < fens.length) {
     evals = []
-    for (let ply = 0; ply < fens.length; ply++) evals.push(whitePov((await search(ply)).score, ply))
+    for (let ply = 0; ply < fens.length; ply++) {
+      onStep?.({ stage: 'scan', done: ply, total: fens.length, findings: [] })
+      evals.push(whitePov((await search(ply)).score, ply))
+    }
   }
 
   const findings: Finding[] = []
-  for (const { firstPly: ply } of criticalEpisodes(evals, game.player)) {
+  const episodes = criticalEpisodes(evals, game.player)
+  for (const [i, { firstPly: ply }] of episodes.entries()) {
+    onStep?.({ stage: 'tag', done: i, total: episodes.length, findings: [...findings] })
     const before = await search(ply - 1)
     const after = await search(ply)
     const played = game.moves[ply - 1]!
@@ -75,6 +91,7 @@ export async function analyseGame(game: AnalysisGame, engine: Engine, settings: 
       winBefore: winPercent(evals[ply - 1]!, game.player),
       winAfter: winPercent(evals[ply]!, game.player),
     })
+    onStep?.({ stage: 'tag', done: i + 1, total: episodes.length, findings: [...findings] })
   }
   return { gameId: game.id, engine: engine.info(), settings, status: 'done', findings }
 }

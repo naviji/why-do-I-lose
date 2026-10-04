@@ -1,11 +1,12 @@
 // Ties import, analysis and the results list together for the one screen. Pure apart
 // from the injected repos, HTTP client, engine loader and label store, so it runs in tests.
 import { writable, type Readable } from 'svelte/store'
-import type { AnalysisGame } from '../analysis/analyseGame'
+import type { AnalysisGame, GameAnalysis } from '../analysis/analyseGame'
 import { isAnalyzable } from '../analysis/eligibility'
 import { createAnalysisJob, type AnalysisJob, type AnalysisRepo, type JobProgress } from '../analysis/job'
 import { DEFAULT_SETTINGS, EngineLoadError, type Engine } from '../engine/engine'
 import { importGames, type GameRepo, type ImportReport } from '../import/importGames'
+import type { Game } from '../import/types'
 import { chesscomSource, lichessSource, type HttpClient, type SourceItem } from '../import/sources'
 import type { Speed as ImportSpeed } from '../import/types'
 import { examplesOf, filterByResult, visibleExamples, type Example, type ResultFilter } from './examples'
@@ -29,12 +30,26 @@ export interface Stats {
   lastSync?: number
 }
 
+export interface GameRow {
+  id: string
+  playedAt: number
+  result: Game['result']
+  player: Game['player']
+  speed: Game['speed']
+  url: string | null
+  status: 'queued' | 'analyzing' | 'done' | 'failed'
+  /** Mistakes found in this game (so far, while analyzing). */
+  mistakes: number
+}
+
 export interface AppState {
   phase: 'idle' | 'importing' | 'analyzing' | 'done'
   user?: { site: Site; username: string }
   downloaded: number
   stats: Stats
   progress?: JobProgress
+  /** Analyzable games, newest first, with where each one is. */
+  queue: GameRow[]
   resultFilter: ResultFilter
   ranked: Ranked<Example>[]
   panelOpen: boolean
@@ -53,6 +68,11 @@ export interface AppController {
   setPanelOpen(open: boolean): void
 }
 
+function gameUrl(id: string): string | null {
+  const [source, key] = id.split(':')
+  return source === 'lichess' ? `https://lichess.org/${key}` : null
+}
+
 const emptyStats = (): Stats => ({ games: 0, wins: 0, draws: 0, losses: 0, analyzed: 0, skipped: 0, unreadable: 0 })
 
 export function createAppController(deps: {
@@ -64,9 +84,12 @@ export function createAppController(deps: {
   now?: () => number
 }): AppController {
   const now = deps.now ?? Date.now
-  const state = writable<AppState>({ phase: 'idle', downloaded: 0, stats: emptyStats(), resultFilter: 'all', ranked: [], panelOpen: true })
+  const state = writable<AppState>({ phase: 'idle', downloaded: 0, stats: emptyStats(), resultFilter: 'all', ranked: [], queue: [], panelOpen: true })
   const removed = deps.labels.load()
   let examples: Example[] = []
+  /** Examples from the game being analyzed, shown before it finishes. */
+  let live: Example[] = []
+  let gamesById = new Map<string, Game>()
   let report: ImportReport | undefined
   let lastSync: number | undefined
   let job: AnalysisJob | undefined
@@ -81,19 +104,28 @@ export function createAppController(deps: {
 
   function rerank() {
     const s = current()
-    set({ ranked: rankCategories(filterByResult(visibleExamples(examples, removed), s.resultFilter)) })
+    set({ ranked: rankCategories(filterByResult(visibleExamples([...examples, ...live], removed), s.resultFilter)) })
   }
 
   async function refresh() {
     const games = await deps.games.list()
-    const byId = new Map(games.map(g => [g.id, g]))
+    const byId = (gamesById = new Map(games.map(g => [g.id, g])))
     const analyses = await deps.analyses.list()
+    const found = new Map<string, number>()
+    for (const a of analyses) found.set(a.gameId, a.findings.length)
+    const prev = new Map(current().queue.map(r => [r.id, r.status]))
+    const queue: GameRow[] = games.filter(isAnalyzable).sort((a, b) => b.playedAt - a.playedAt).map(g => ({
+      id: g.id, playedAt: g.playedAt, result: g.result, player: g.player, speed: g.speed, url: gameUrl(g.id),
+      status: found.has(g.id) ? 'done' : prev.get(g.id) === 'failed' ? 'failed' : g.id === current().progress?.current ? 'analyzing' : 'queued',
+      mistakes: found.get(g.id) ?? 0,
+    }))
     examples = analyses.flatMap(a => {
       const g = byId.get(a.gameId)
       return g ? examplesOf(g, a) : []
     })
     const times = games.map(g => g.playedAt)
     set({
+      queue,
       stats: {
         games: games.length,
         wins: games.filter(g => g.result === 'win').length,
@@ -123,11 +155,20 @@ export function createAppController(deps: {
     const games = async (): Promise<AnalysisGame[]> => (await deps.games.list()).filter(isAnalyzable)
       .sort((a, b) => b.playedAt - a.playedAt)
     job = createAnalysisJob({ games, analyses: deps.analyses, engine: await (engine ??= deps.engine()), settings: DEFAULT_SETTINGS })
-    let finished = 0
     job.subscribe(p => {
-      set({ progress: p, ...(p.error ? { error: p.error } : {}) })
-      if (p.done !== finished || !p.running) {
-        finished = p.done
+      const g = p.current ? gamesById.get(p.current) : undefined
+      live = g && p.step ? examplesOf(g, { gameId: g.id, findings: p.step.findings } as GameAnalysis) : []
+      set({
+        progress: p,
+        ...(p.error ? { error: p.error } : {}),
+        queue: current().queue.map(r =>
+          r.id === p.finished?.gameId ? { ...r, status: p.finished.status }
+          : r.id === p.current ? { ...r, status: 'analyzing', mistakes: p.step?.findings.length ?? 0 }
+          : r.status === 'analyzing' ? { ...r, status: 'queued' } : r),
+      })
+      rerank()
+      if (p.finished || !p.running) {
+        live = []
         void refresh().then(() => { if (!p.running) set({ phase: 'done' }) })
       }
     })
@@ -140,6 +181,9 @@ export function createAppController(deps: {
     async restore() {
       await refresh()
       if (current().stats.games > 0) set({ panelOpen: false })
+      // Pick up where an earlier visit stopped.
+      if (current().queue.some(r => r.status !== 'done')) await analyze()
+      else if (current().stats.games > 0) set({ phase: 'done' })
     },
     async importAndAnalyze(site, username, filters) {
       job?.stop()

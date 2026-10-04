@@ -2,7 +2,7 @@
 // games are saved as they complete; stopping discards only the game in progress, and
 // starting again skips games already analysed with the same engine and settings.
 import { EngineLoadError, type Engine, type EngineInfo, type EngineSettings } from '../engine/engine'
-import { analyseGame, type AnalysisGame, type GameAnalysis } from './analyseGame'
+import { analyseGame, type AnalysisGame, type GameAnalysis, type GameStep } from './analyseGame'
 
 export interface AnalysisRepo {
   put(analysis: GameAnalysis): Promise<void>
@@ -33,6 +33,10 @@ export interface JobProgress {
   failed: number
   eligible: number
   current?: string
+  /** How far the current game has got, with its findings so far. */
+  step?: GameStep
+  /** The game that just finished in this emit, and how. */
+  finished?: { gameId: string; status: 'done' | 'failed' }
   error?: string
 }
 
@@ -62,14 +66,19 @@ export function createAnalysisJob(deps: {
       if (!(await analyses.get(game.id, engine.info(), settings))) {
         emit({ ...progress, current: game.id })
         try {
-          await analyses.put(await analyseGame(game, engine, settings, signal))
+          await analyses.put(await analyseGame(game, engine, settings, signal, step => emit({ ...progress, current: game.id, step })))
+          progress.done++
+          emit({ ...progress, finished: { gameId: game.id, status: 'done' } })
         } catch (e) {
           if (signal.aborted) break // the stopped game is discarded
           progress.failed++
+          progress.done++
+          emit({ ...progress, finished: { gameId: game.id, status: 'failed' } })
         }
+        continue
       }
       progress.done++
-      emit({ ...progress })
+      emit({ ...progress, finished: { gameId: game.id, status: 'done' } })
     }
     emit({ ...progress, running: false, current: undefined })
   }
