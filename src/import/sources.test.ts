@@ -51,8 +51,29 @@ describe('lichessSource', () => {
 
   it('asks only for games after the checkpoint', async () => {
     const client = http()
-    await collect(lichessSource('kramford', client, 1780000000000))
+    await collect(lichessSource('kramford', client, { since: 1780000000000 }))
     expect(client.requested[0]).toContain('&since=1780000000000')
+  })
+
+  it('passes openingtree-style filters to the Lichess API', async () => {
+    const client = http()
+    const filters = { speeds: ['blitz', 'rapid'], rated: 'rated', color: 'black', opponent: 'Mister-iks', from: 1, to: 2, max: 50 } as const
+    await collect(lichessSource('kramford', client, { filters }))
+    expect(client.requested[0]).toBe(
+      'https://lichess.org/api/games/user/kramford?evals=true&clocks=true&perfType=blitz,rapid&rated=true&color=black&vs=Mister-iks&since=1&until=2&max=50',
+    )
+  })
+
+  it('filters by opponent rating after download, as openingtree does', async () => {
+    const items = await collect(lichessSource('kramford', http(), { filters: { eloRange: [1400, null] } }))
+    const pgns = items.flatMap(i => ('pgn' in i ? [i.pgn] : []))
+    expect(pgns.length).toBeGreaterThan(0)
+    expect(pgns.length).toBeLessThan(200)
+    for (const pgn of pgns) {
+      const kramfordWhite = /\[White "kramford"\]/.test(pgn)
+      const elo = Number(new RegExp(`\\[${kramfordWhite ? 'Black' : 'White'}Elo "(\\d+)"\\]`).exec(pgn)![1])
+      expect(elo).toBeGreaterThanOrEqual(1400)
+    }
   })
 
   it('keeps the games already received when the network fails', async () => {
@@ -74,13 +95,20 @@ describe('chesscomSource', () => {
   it('reads every monthly archive', async () => {
     const http = client()
     const items = await collect(chesscomSource('kramford', http))
-    expect(items.filter(i => 'pgn' in i)).toHaveLength(2)
+    expect(items.filter(i => 'pgn' in i)).toHaveLength(1) // the Chess960 game is left out
     expect(http.requested).toHaveLength(3)
+  })
+
+  it('applies the filters to each archive game', async () => {
+    const items = await collect(chesscomSource('kramford', client(), { filters: { speeds: ['rapid'] } }))
+    expect(items).toEqual([])
+    const blitz = await collect(chesscomSource('kramford', client(), { filters: { speeds: ['blitz'], color: 'white' } }))
+    expect(blitz).toHaveLength(1)
   })
 
   it('starts from the checkpoint month', async () => {
     const http = client()
-    await collect(chesscomSource('kramford', http, '2026/09'))
+    await collect(chesscomSource('kramford', http, { since: '2026/09' }))
     expect(http.requested.slice(1)).toEqual(['https://api.chess.com/pub/player/kramford/games/2026/09'])
   })
 })
