@@ -49,4 +49,11 @@ describe('hangingPawn', () => {
     // three checks before the capture: a long combination, not a hanging pawn
     expect(hangingPawn(make('k7/8/8/8/8/8/1p6/R5K1 b - - 0 1', 'a8b7 a1a7 b7b6 a7a6 b6b5 a6a5 b5b4 a5b5 b4c3 b5b2'))).toBe(false)
   })
+
+  it('does not count forced replies against the forcing moves', () => {
+    // kramford game FcatXVR6, move 37: Rb2+ Rc2 Rxc2+ Nxc2 Rc6 Nb4 Rc4 Nxd5+ wins the pawn.
+    // Blocking the check and taking back the rook are forced, not tempo moves.
+    const fen = '8/8/p1Rr1kp1/Pp1p3p/3N1P2/R3P1P1/5K2/1r6 b - - 7 37'
+    expect(hangingPawn(make(fen, 'b1b2 c6c2 b2c2 d4c2 d6c6 c2b4 c6c4 b4d5 f6e6'))).toBe(true)
+  })
 })

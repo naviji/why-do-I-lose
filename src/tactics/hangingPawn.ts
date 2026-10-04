@@ -21,12 +21,23 @@ function isForcing(node: ChildNode, pov: Board['turn']): boolean {
   return winningCaptures(after, pov).length > 0
 }
 
+function isForcedReply(node: ChildNode): boolean {
+  const before = node.parent.board()
+  if (before.isCheck()) return true
+  const prev = node.parent as ChildNode
+  return prev.move !== undefined && prev.move.to === node.move.to && !!prev.parent.board().pieceAt(prev.move.to)
+}
+
 export function hangingPawn(puzzle: Puzzle): boolean {
   const line = puzzle.mainline
   // opponent moves are at odd indices
-  for (let k = 1, forcing = 0; k < line.length && forcing <= MAX_FORCING; k += 2, forcing++) {
+  for (let k = 1, forcing = 0; k < line.length && forcing <= MAX_FORCING; k += 2) {
     if (pawnWon(puzzle, k)) return true
+    // answering a check or taking back a piece is forced: it neither needs to be forcing
+    // nor uses up one of the forcing moves
+    if (isForcedReply(line[k]!)) continue
     if (!isForcing(line[k]!, puzzle.pov)) return false
+    forcing++
   }
   return false
 }
