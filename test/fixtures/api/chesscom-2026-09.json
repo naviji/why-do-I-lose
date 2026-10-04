@@ -1,0 +1,20 @@
+{
+  "games": [
+    {
+      "url": "https://www.chess.com/game/live/123456789",
+      "time_class": "blitz",
+      "rules": "chess",
+      "white": { "username": "kramford", "result": "checkmated" },
+      "black": { "username": "Opponent1", "result": "win" },
+      "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.09.12\"]\n[White \"kramford\"]\n[Black \"Opponent1\"]\n[Result \"0-1\"]\n[TimeControl \"300\"]\n[Termination \"Opponent1 won by checkmate\"]\n[UTCDate \"2026.09.12\"]\n[UTCTime \"10:00:00\"]\n[Link \"https://www.chess.com/game/live/123456789\"]\n\n1. f3 {[%clk 0:04:59]} 1... e5 {[%clk 0:04:58]} 2. g4 {[%clk 0:04:57]} 2... Qh4# {[%clk 0:04:57]} 0-1\n"
+    },
+    {
+      "url": "https://www.chess.com/game/live/123456790",
+      "time_class": "blitz",
+      "rules": "chess960",
+      "white": { "username": "Opponent2", "result": "win" },
+      "black": { "username": "kramford", "result": "resigned" },
+      "pgn": "[Event \"Live Chess - Chess960\"]\n[Variant \"Chess960\"]\n[White \"Opponent2\"]\n[Black \"kramford\"]\n[Result \"1-0\"]\n\n1. e4 1-0\n"
+    }
+  ]
+}
