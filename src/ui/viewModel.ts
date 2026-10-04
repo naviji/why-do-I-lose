@@ -86,7 +86,13 @@ const VERB: Record<string, string> = {
 }
 
 function verb(tag: string): string {
-  return VERB[tag] ?? `allow a ${categoryName(tag).toLowerCase()}`
+  return VERB[tag] ?? `allow ${article(categoryName(tag).toLowerCase())}`
+}
+
+const article = (noun: string) => `${/^[aeiou]/.test(noun) ? 'an' : 'a'} ${noun}`
+
+export function notALabel(tag: string): string {
+  return `Not ${article(categoryName(tag).toLowerCase())}`
 }
 
 export function headline(ranked: { category: string; games: number }[], analyzed: number): string | null {

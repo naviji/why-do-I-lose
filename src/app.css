@@ -1,0 +1,16 @@
+:root {
+  --bg: #302e2b; --panel: #262421; --panel-dark: #211f1c; --line: #3c3a37; --input: #1c1a18; --input-line: #4a4744;
+  --text: #edebe9; --muted: #b5b2ae; --green: #81b64c; --green-shadow: #5d8a33; --link: #9bc86a;
+  --light: #ebecd0; --dark: #779556;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Nunito Sans', system-ui, sans-serif; font-size: 16px; }
+a { color: var(--link); }
+button, input, select { font: inherit; color: inherit; }
+.mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+.btn { min-height: 44px; padding: 0 16px; border: 0; border-radius: 6px; background: var(--line); color: var(--text); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.btn.primary { background: var(--green); color: #fff; font-weight: 800; box-shadow: 0 3px 0 var(--green-shadow); }
+.btn.ghost { background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .5; cursor: default; }
+.muted { color: var(--muted); }

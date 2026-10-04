@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  analysisUrl, boardSquares, categoryName, defaultFilters, filterSummary, headline, puzzleUrl, rankCategories,
+  analysisUrl, boardSquares, categoryName, defaultFilters, filterSummary, headline, notALabel, puzzleUrl, rankCategories,
   speedsFor,
 } from './viewModel'
 
@@ -67,6 +67,13 @@ describe('rankCategories', () => {
 })
 
 describe('headline', () => {
+  it('uses "an" before a vowel', () => {
+    expect(headline([{ category: 'advancedPawn', games: 2 }], 5)).toBe('You most often allow an advanced pawn: 2 of 5 analyzed games.')
+  })
+  it('notALabel reads naturally', () => {
+    expect(notALabel('advancedPawn')).toBe('Not an advanced pawn')
+    expect(notALabel('fork')).toBe('Not a fork')
+  })
   it('names the categories tied for first', () => {
     const ranked = [
       { category: 'defensiveMove', games: 12 }, { category: 'discoveredAttack', games: 12 },
