@@ -65,7 +65,16 @@ export async function analyseGame(game: AnalysisGame, engine: Engine, settings: 
     const before = await search(ply - 1)
     const after = await search(ply)
     const played = game.moves[ply - 1]!
-    const tags = tagMove({ fen: fens[ply - 1]!, move: played, line: after.pv, lineScore: after.score, better: before.pv[0] })
+    const tags = tagMove({
+      fen: fens[ply - 1]!,
+      move: played,
+      line: after.pv,
+      lineScore: after.score,
+      better: before.pv[0],
+      betterLine: before.pv,
+      prevFen: ply >= 2 ? fens[ply - 2] : undefined,
+      prevMove: ply >= 2 ? game.moves[ply - 2] : undefined,
+    })
     findings.push({
       ply,
       played,

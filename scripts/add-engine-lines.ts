@@ -1,6 +1,7 @@
 // Usage: npx tsx scripts/add-engine-lines.ts <candidates.json> [depth]
 // For each candidate, stores the opponent's best line after the player's move
-// (`line`, `lineScore` from the opponent's POV) and the engine's best move instead (`better`).
+// (`line`, `lineScore` from the opponent's POV) and the engine's best move instead (`better`,
+// with its whole line in `betterLine`).
 import { readFileSync, writeFileSync } from 'node:fs'
 import { startEngine, ENGINE_BUILD, MAX_NODES } from './nodeEngine'
 
@@ -15,7 +16,7 @@ let engine = startEngine()
 await engine.init()
 let done = 0
 for (const c of candidates) {
-  if (c.line && c.engine?.depth === depth) continue
+  if (c.line && c.betterLine && c.engine?.depth === depth) continue
   if (done > 0 && done % RESTART_EVERY === 0) {
     engine.quit()
     engine = startEngine()
@@ -27,6 +28,7 @@ for (const c of candidates) {
   c.line = after.pv
   c.lineScore = after.score
   c.better = before.bestmove
+  c.betterLine = before.pv
   c.engine = { build: ENGINE_BUILD, depth, maxNodes: MAX_NODES }
   c.engine.depthReached = Math.min(after.depth, before.depth)
   writeFileSync(path, JSON.stringify(candidates, null, 2) + '\n')

@@ -8,6 +8,8 @@ import { counting } from './exchange'
 import { exposedKingLate } from './exposedKing'
 import { hangingAfterCheck } from './hangingAfterCheck'
 import { hangingPawn } from './hangingPawn'
+import { categories } from './categories'
+import { missedTactic } from './missed'
 import { make } from './puzzle'
 import { trimToGain } from './trim'
 
@@ -25,9 +27,22 @@ export interface CriticalMove {
   lineScore: Score
   /** The engine's best move instead of `move`. */
   better?: string
+  /** The engine's whole better line, the position before the opponent's previous move, and that move. */
+  betterLine?: string[]
+  prevFen?: string
+  prevMove?: string
 }
 
-export function tagMove({ fen, move, line: engineLine, lineScore, better }: CriticalMove): string[] {
+export function tagMove(c: CriticalMove): string[] {
+  const tags = tagAllowed(c)
+  // nothing the opponent can punish: the mistake may be a tactic the player missed
+  if (categories(tags)[0] === 'positionalMistake' && c.betterLine?.length && c.prevFen && c.prevMove)
+    for (const t of missedTactic({ prevFen: c.prevFen, prevMove: c.prevMove, betterLine: c.betterLine }))
+      if (!tags.includes(t)) tags.push(t)
+  return tags
+}
+
+function tagAllowed({ fen, move, line: engineLine, lineScore, better }: CriticalMove): string[] {
   // a puzzle mainline ends on the solver's move: m + an odd number of opponent plies
   const full = engineLine.slice(0, MAX_PLIES - 1)
   let line = trimToGain(fen, move, full)

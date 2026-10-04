@@ -32,6 +32,8 @@ for (const game of parsePgn(readFileSync(pgnPath, 'utf8'))) {
   const firstPlies = new Set(episodes.map(e => e.firstPly))
   const id = h.get('GameId') ?? h.get('Site')?.split('/').pop()
   let ply = 0
+  let prevFen: string | null = null
+  let prevMove: string | null = null
   for (const node of game.moves.mainline()) {
     ply++
     const fen = makeFen(pos.toSetup())
@@ -47,6 +49,8 @@ for (const game of parsePgn(readFileSync(pgnPath, 'utf8'))) {
         ply,
         fen,
         move: standardUci(pos, move),
+        prevFen,
+        prevMove,
         san: node.san,
         evalBefore: evals[ply - 1],
         evalAfter: evals[ply],
@@ -55,6 +59,8 @@ for (const game of parsePgn(readFileSync(pgnPath, 'utf8'))) {
         labels: {} as Record<string, boolean>,
       })
     }
+    prevFen = fen
+    prevMove = standardUci(pos, move)
     makeSanAndPlay(pos, move)
   }
 }
