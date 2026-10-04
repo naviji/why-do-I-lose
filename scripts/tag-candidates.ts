@@ -7,6 +7,7 @@ import { make } from '../src/tactics/puzzle'
 import { counting } from '../src/tactics/exchange'
 import { hangingPawn } from '../src/tactics/hangingPawn'
 import { defensiveMove } from '../src/tactics/defensiveMove'
+import { trimToGain } from '../src/tactics/trim'
 
 const MAX_PLIES = 12
 // cook.py's defensiveMove describes the opponent's solution; ours (below) describes the player's move
@@ -18,7 +19,8 @@ const candidates = JSON.parse(readFileSync(path, 'utf8'))
 const counts: Record<string, number> = {}
 for (const c of candidates) {
   // a puzzle mainline ends on the solver's move: m + an odd number of opponent plies
-  let line: string[] = c.line.slice(0, MAX_PLIES - 1)
+  const full: string[] = c.line.slice(0, MAX_PLIES - 1)
+  let line: string[] = trimToGain(c.fen, c.move, full)
   if (line.length % 2 === 0) line = line.slice(0, -1)
   if (!line.length) {
     c.tags = []
@@ -29,7 +31,7 @@ for (const c of candidates) {
   const puzzle = make(c.fen, [c.move, ...line], cp)
   c.tags = cook(puzzle).filter((t: string) => !META.has(t))
   // a threat already on the board is a missed defence, not something the move left hanging
-  if (defensiveMove({ fen: c.fen, move: c.move, line, better: c.better })) {
+  if (defensiveMove({ fen: c.fen, move: c.move, line: full, better: c.better })) {
     c.tags = c.tags.filter((t: string) => t !== 'hangingPiece')
     c.tags.push('defensiveMove')
   } else if (hangingPawn(puzzle)) c.tags.push('hangingPawn')

@@ -61,7 +61,7 @@ export function counting({ fen, move, line }: { fen: string; move: string; line:
   const board = Board.fromFen(fen)
   const player = board.turn
   const m = parseUci(move) as Move
-  const result = playerStarts(board, m) ?? opponentStarts(board, m, line)
+  const result = playerStarts(board, m, line) ?? opponentStarts(board, m, line)
   if (!result) return null
   const end = board.copy()
   end.push(m)
@@ -73,8 +73,11 @@ export function counting({ fen, move, line }: { fen: string; move: string; line:
 
 type Start = Omit<Counting, 'materialLost'>
 
-function playerStarts(board: Board, m: Move): Start | null {
+function playerStarts(board: Board, m: Move, line: string[]): Start | null {
   if (!board.isCapture(m)) return null
+  // the opponent has to take back on that square; otherwise the loss comes from elsewhere
+  const reply = line[0] ? (parseUci(line[0]) as Move) : undefined
+  if (!reply || reply.to !== m.to) return null
   const count = see(board, m)
   return count < 0 ? { square: makeSquare(m.to), see: count, by: 'player' } : null
 }

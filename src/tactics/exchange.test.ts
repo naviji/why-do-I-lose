@@ -62,6 +62,14 @@ describe('counting: the player starts the exchange', () => {
   })
 })
 
+describe('counting: the loss has to come from the exchange', () => {
+  it('ignores a losing capture when the opponent wins something else instead', () => {
+    // kramford game 6EDJEDJU, move 11: Nxc3 is -1 on c3, but the loss is the queen to Qxa5
+    const fen = 'Nn3k1r/pp2ppbp/4b1p1/q1Pp4/1Q2nB2/2P1P3/PP3PPP/R3KBNR b KQ - 4 11'
+    expect(counting({ fen, move: 'e4c3', line: ['b4a5', 'b8c6', 'a5a3', 'c3e4', 'a8c7', 'g6g5', 'c7e6', 'f7e6'] })).toBeNull()
+  })
+})
+
 describe('counting: the opponent starts the exchange', () => {
   // kramford game L4uuQv4z, move 18: e6 drops a defender of f6, Bxf6 Bxf6 Qxf6 wins the knight
   const fen = '2r1r1k1/3qppbp/p1n2np1/1p4B1/1N1P4/P1P2Q1P/BP3PP1/R3R1K1 b - - 1 18'
