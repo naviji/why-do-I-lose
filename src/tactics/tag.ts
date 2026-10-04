@@ -9,6 +9,7 @@ import { exposedKingLate } from './exposedKing'
 import { hangingAfterCheck } from './hangingAfterCheck'
 import { hangingPawn } from './hangingPawn'
 import { categories } from './categories'
+import { lateLoss, mateThreat } from './fallback'
 import { missedTactic } from './missed'
 import { make } from './puzzle'
 import { trimToGain } from './trim'
@@ -60,5 +61,14 @@ function tagAllowed({ fen, move, line: engineLine, lineScore, better }: Critical
   if (!tags.includes('discoveredAttack') && discoveredAttackOnPiece(puzzle)) tags.push('discoveredAttack')
   if (!tags.includes('exposedKing') && exposedKingLate(puzzle)) tags.push('exposedKing')
   if (counting({ fen, move, line })) tags.push('counting')
+  // nothing above fired: look further into the line
+  if (categories(tags)[0] === 'positionalMistake') {
+    // a mate threat explains any material given up to stop it
+    if (mateThreat(puzzle)) tags.push('mateThreat')
+    else {
+      const late = lateLoss(puzzle)
+      if (late) tags.push(late)
+    }
+  }
   return tags
 }

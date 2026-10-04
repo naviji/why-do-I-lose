@@ -20,7 +20,7 @@ export interface ImportFilters {
 const NAMES: Record<string, string> = {
   hangingPiece: 'Hanging piece', hangingPawn: 'Hanging pawn', defensiveMove: 'Defensive move',
   discoveredAttack: 'Discovered attack', positionalMistake: 'Positional mistake', doubleCheck: 'Double check',
-  pawnEndgame: 'Pawn endgame', exposedKing: 'Exposed king', kingsideAttack: 'Kingside attack',
+  pawnEndgame: 'Pawn endgame', exposedKing: 'Exposed king', mateThreat: 'Mate threat', kingsideAttack: 'Kingside attack',
   queensideAttack: 'Queenside attack', trappedPiece: 'Trapped piece', advancedPawn: 'Advanced pawn',
   backRankMate: 'Back rank mate', smotheredMate: 'Smothered mate', capturingDefender: 'Capturing the defender',
   xRayAttack: 'X-ray attack', flagged: 'Lost on time',
@@ -33,7 +33,7 @@ export function categoryName(tag: string): string {
 }
 
 // Our own categories have no Lichess puzzle theme.
-const NO_THEME = new Set(['counting', 'hangingPawn', 'positionalMistake', 'flagged'])
+const NO_THEME = new Set(['counting', 'hangingPawn', 'positionalMistake', 'flagged', 'mateThreat'])
 
 export function puzzleUrl(tag: string): string | null {
   return NO_THEME.has(tag) ? null : `https://lichess.org/training/${tag}`
@@ -82,7 +82,7 @@ export function rankCategories<T extends { gameId: string; category: string }>(f
 const VERB: Record<string, string> = {
   defensiveMove: 'miss a defensive move', hangingPawn: 'hang a pawn', hangingPiece: 'hang a piece',
   positionalMistake: 'make a positional mistake', counting: 'lose material on the count',
-  pawnEndgame: 'go wrong in a pawn endgame', flagged: 'lose on time',
+  pawnEndgame: 'go wrong in a pawn endgame', flagged: 'lose on time', mateThreat: 'allow a mate threat',
 }
 
 function verb(tag: string): string {
