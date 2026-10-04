@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { svelteTesting } from '@testing-library/svelte/vite'
 
 const ENGINE_BUILD = 'stockfish-19-lite-single'
 
@@ -23,7 +24,7 @@ function stockfishAssets(): Plugin {
 const isolation = { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' }
 
 export default defineConfig({
-  plugins: [svelte(), stockfishAssets()],
+  plugins: [svelte(), svelteTesting(), stockfishAssets()],
   server: { headers: isolation },
   preview: { headers: isolation },
   test: {
