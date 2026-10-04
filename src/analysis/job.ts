@@ -1,4 +1,4 @@
-// Runs analyseGame over many losses, one at a time, with Stop and Resume. Finished
+// Runs analyseGame over many games, one at a time, with Stop and Resume. Finished
 // games are saved as they complete; stopping discards only the game in progress, and
 // starting again skips games already analysed with the same engine and settings.
 import { EngineLoadError, type Engine, type EngineInfo, type EngineSettings } from '../engine/engine'
@@ -10,16 +10,16 @@ export interface AnalysisRepo {
   list(): Promise<GameAnalysis[]>
 }
 
-const key = (gameId: string, engine: EngineInfo, settings: EngineSettings) =>
+export const analysisKey = (gameId: string, engine: EngineInfo, settings: EngineSettings) =>
   JSON.stringify([gameId, engine.name, engine.version, settings.depth, settings.nodes])
 
 export class MemoryAnalysisRepo implements AnalysisRepo {
   private readonly rows = new Map<string, GameAnalysis>()
   async put(a: GameAnalysis) {
-    this.rows.set(key(a.gameId, a.engine, a.settings), a)
+    this.rows.set(analysisKey(a.gameId, a.engine, a.settings), a)
   }
   async get(gameId: string, engine: EngineInfo, settings: EngineSettings) {
-    return this.rows.get(key(gameId, engine, settings))
+    return this.rows.get(analysisKey(gameId, engine, settings))
   }
   async list() {
     return [...this.rows.values()]

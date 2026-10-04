@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Score } from '../core/winChance'
+import { winPercent, type Score } from '../core/winChance'
 import { DEFAULT_SETTINGS, type EvalResult } from '../engine/engine'
 import { FakeEngine } from '../engine/fakeEngine'
 import { analyseGame, type AnalysisGame } from './analyseGame'
@@ -28,6 +28,15 @@ describe('analyseGame', () => {
     expect(analysis.findings[0]!.line).toEqual(table[fens[10]!]!.pv)
     // Qb6 is the row 215 you approved as a positional mistake; Nh5 walks into a trap
     expect(analysis.findings.map(f => f.categories)).toEqual([['positionalMistake'], ['trappedPiece']])
+  })
+
+  it("gives the player's win chance before and after each critical move", async () => {
+    const analysis = await analyseGame({ ...game, evals: lichessEvals }, new FakeEngine(table), DEFAULT_SETTINGS, signal)
+    for (const f of analysis.findings) {
+      expect(f.winBefore).toBeCloseTo(winPercent(lichessEvals[f.ply - 1]!, 'black'))
+      expect(f.winAfter).toBeCloseTo(winPercent(lichessEvals[f.ply]!, 'black'))
+      expect(f.winBefore - f.winAfter).toBeGreaterThan(10)
+    }
   })
 
   it('with Lichess scores, searches only around each critical move', async () => {

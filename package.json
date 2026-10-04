@@ -19,6 +19,7 @@
     "@testing-library/svelte": "^5.4.2",
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^24.13.3",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
     "stockfish": "^19.0.0",
     "svelte": "^5.57.0",

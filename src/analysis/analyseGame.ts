@@ -1,4 +1,4 @@
-// Analyses one loss: find the critical moves, then tag each from the opponent's best line.
+// Analyses one game: find the critical moves, then tag each from the opponent's best line.
 // With Lichess's per-move scores the engine only searches around each critical move;
 // without them (Chess.com, PGN, unanalysed games) it searches every position first.
 import type { Color } from 'chessops'
@@ -7,7 +7,7 @@ import { makeFen } from 'chessops/fen'
 import { parseUci } from 'chessops/util'
 import { criticalEpisodes } from '../core/criticalMoves'
 import { positionFromFen } from '../core/position'
-import type { Score } from '../core/winChance'
+import { winPercent, type Score } from '../core/winChance'
 import type { Engine, EngineInfo, EngineSettings, EvalResult } from '../engine/engine'
 import { categories } from '../tactics/categories'
 import { tagMove } from '../tactics/tag'
@@ -31,6 +31,9 @@ export interface Finding {
   /** The opponent's best line after `played`. */
   line: string[]
   categories: string[]
+  /** The player's win chance (0-100, Lichess formula) before and after `played`. */
+  winBefore: number
+  winAfter: number
 }
 
 export interface GameAnalysis {
@@ -63,7 +66,15 @@ export async function analyseGame(game: AnalysisGame, engine: Engine, settings: 
     const after = await search(ply)
     const played = game.moves[ply - 1]!
     const tags = tagMove({ fen: fens[ply - 1]!, move: played, line: after.pv, lineScore: after.score, better: before.pv[0] })
-    findings.push({ ply, played, better: before.pv[0] ?? null, line: after.pv, categories: categories(tags) })
+    findings.push({
+      ply,
+      played,
+      better: before.pv[0] ?? null,
+      line: after.pv,
+      categories: categories(tags),
+      winBefore: winPercent(evals[ply - 1]!, game.player),
+      winAfter: winPercent(evals[ply]!, game.player),
+    })
   }
   return { gameId: game.id, engine: engine.info(), settings, status: 'done', findings }
 }
