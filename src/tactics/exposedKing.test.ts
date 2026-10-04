@@ -9,6 +9,12 @@ describe('exposedKingLate', () => {
     expect(exposedKingLate(make(fen, 'g2h3 d7h3 f2f4 e5d4 f1f2 h3g3 g1h1 d4f2 d1f1'))).toBe(true)
   })
 
+  it('flags a check that captures the cover pawn itself', () => {
+    // kramford game YSZRRxvx, move 19 (batch-1 row 11): h5 and then Rxg6+ takes the g6 pawn in front of Kg7
+    const fen = 'rn1q1r2/1b2pnk1/p2p2p1/1pp5/4P2P/P1NP4/BPPQ1P2/R3K1R1 b Q - 0 19'
+    expect(exposedKingLate(make(fen, 'f8g8 h4h5 b8d7 e1c1 c5c4 g1g6 g7f8 d3c4 d7f6 d1g1 d8c8 c4b5'))).toBe(true)
+  })
+
   it('ignores a stripped cover when the opponent never checks', () => {
     // kramford game TGS5qDvX, move 24: …h5 gxh5 gxh5 opens the king, but White just invades with the rooks
     const fen = '4rr2/2p2pkp/p1p1pRp1/4P3/3P2PP/1PP5/P7/R5K1 b - - 0 24'
