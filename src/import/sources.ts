@@ -5,7 +5,7 @@ import type { Speed } from './types'
 
 /** The import filters openingtree offers, minus variants (v1 is standard chess only). */
 export interface ImportFilters {
-  speeds?: Speed[]
+  speeds?: readonly Speed[]
   rated?: 'all' | 'rated' | 'casual'
   /** The user's colour; both when absent. */
   color?: 'white' | 'black'
