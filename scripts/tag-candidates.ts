@@ -8,6 +8,7 @@ import { counting } from '../src/tactics/exchange'
 import { hangingPawn } from '../src/tactics/hangingPawn'
 import { defensiveMove } from '../src/tactics/defensiveMove'
 import { trimToGain } from '../src/tactics/trim'
+import { discoveredAttackOnPiece } from '../src/tactics/discovered'
 
 const MAX_PLIES = 12
 // cook.py's defensiveMove describes the opponent's solution; ours (below) describes the player's move
@@ -35,6 +36,7 @@ for (const c of candidates) {
     c.tags = c.tags.filter((t: string) => t !== 'hangingPiece')
     c.tags.push('defensiveMove')
   } else if (hangingPawn(puzzle)) c.tags.push('hangingPawn')
+  if (!c.tags.includes('discoveredAttack') && discoveredAttackOnPiece(puzzle)) c.tags.push('discoveredAttack')
   if (counting({ fen: c.fen, move: c.move, line })) c.tags.push('counting')
   for (const t of c.tags) counts[t] = (counts[t] ?? 0) + 1
 }
