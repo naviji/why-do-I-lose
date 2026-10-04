@@ -5,6 +5,7 @@ import { cook } from './cook'
 import { defensiveMove } from './defensiveMove'
 import { discoveredAttackOnPiece } from './discovered'
 import { counting } from './exchange'
+import { exposedKingLate } from './exposedKing'
 import { hangingPawn } from './hangingPawn'
 import { make } from './puzzle'
 import { trimToGain } from './trim'
@@ -40,6 +41,7 @@ export function tagMove({ fen, move, line: engineLine, lineScore, better }: Crit
     tags.push('defensiveMove')
   } else if (hangingPawn(puzzle)) tags.push('hangingPawn')
   if (!tags.includes('discoveredAttack') && discoveredAttackOnPiece(puzzle)) tags.push('discoveredAttack')
+  if (!tags.includes('exposedKing') && exposedKingLate(puzzle)) tags.push('exposedKing')
   if (counting({ fen, move, line })) tags.push('counting')
   return tags
 }
