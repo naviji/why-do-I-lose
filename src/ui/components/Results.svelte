@@ -3,12 +3,11 @@
   import type { ResultFilter } from '../examples'
   import { categoryName, headline } from '../viewModel'
   import ExampleView from './ExampleView.svelte'
-  import GameQueue from './GameQueue.svelte'
-  let { app, onremove, onfilter }: { app: AppState; onremove: (id: string) => void; onfilter: (f: ResultFilter) => void } = $props()
+  import AnalysisStatus from './AnalysisStatus.svelte'
+  let { app, onremove, onfilter, onstop, onresume }: { app: AppState; onremove: (id: string) => void; onfilter: (f: ResultFilter) => void; onstop: () => void; onresume: () => void } = $props()
   let open = $state<string | null>(null)
   let max = $derived(Math.max(1, ...app.ranked.map(r => r.games)))
   let title = $derived(headline(app.ranked, app.stats.analyzed))
-  let progress = $derived(app.progress && app.progress.eligible ? app.progress.done / app.progress.eligible : 0)
   const GHOST = ['Hanging piece', 'Defensive move', 'Fork', 'Hanging pawn', 'Discovered attack', 'Pin']
 </script>
 
@@ -22,17 +21,14 @@
     </div>
   {:else}
     <h1>{title ?? (app.phase === 'analyzing' ? 'Analyzing your games… mistakes appear here as they are found.' : app.stats.analyzed ? 'No mistakes found in the analyzed games.' : 'Not analyzed yet.')}</h1>
+    <AnalysisStatus {app} {onstop} {onresume} />
     <div class="meta muted">
       <span>Categories overlap.</span>
       <select aria-label="Result" value={app.resultFilter} onchange={e => onfilter((e.currentTarget as HTMLSelectElement).value as ResultFilter)}>
         <option value="all">All results</option><option value="loss">Losses</option><option value="win">Wins</option><option value="draw">Draws</option>
       </select>
-      {#if app.phase === 'analyzing' && app.progress}
-        <span class="progress"><span class="track"><span style:width="{progress * 100}%"></span></span>{app.progress.done} / {app.progress.eligible}</span>
-      {/if}
     </div>
     {#if app.error}<p class="error" role="alert">{app.error}</p>{/if}
-    <GameQueue {app} />
     <div class="list">
       {#each app.ranked as r (r.category)}
         <div class="item">
@@ -54,9 +50,6 @@
   .intro { margin: 0; }
   .meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 14px; }
   select { min-height: 36px; padding: 0 8px; border: 1px solid var(--input-line); border-radius: 6px; background: var(--input); font-size: 16px; }
-  .progress { flex: 1 1 160px; display: flex; gap: 8px; align-items: center; }
-  .track { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
-  .track span { display: block; height: 6px; background: var(--green); }
   .list { background: var(--panel); border-radius: 8px; overflow: hidden; position: relative; }
   .item { border-bottom: 1px solid var(--line); }
   .row { width: 100%; min-height: 52px; display: grid; grid-template-columns: minmax(120px, 1fr) minmax(40px, 2fr) 80px; gap: 12px; align-items: center; padding: 8px 16px; border: 0; background: none; text-align: left; cursor: pointer; }

@@ -23,6 +23,8 @@ export interface Stats {
   draws: number
   losses: number
   analyzed: number
+  /** Analyzable games with no analysis yet. */
+  pending: number
   first?: number
   last?: number
   skipped: number
@@ -30,17 +32,8 @@ export interface Stats {
   lastSync?: number
 }
 
-export interface GameRow {
-  id: string
-  playedAt: number
-  result: Game['result']
-  player: Game['player']
-  speed: Game['speed']
-  url: string | null
-  status: 'queued' | 'analyzing' | 'done' | 'failed'
-  /** Mistakes found in this game (so far, while analyzing). */
-  mistakes: number
-}
+/** The game being analyzed, as the progress line describes it. */
+export type CurrentGame = Pick<Game, 'playedAt' | 'result' | 'player' | 'speed'>
 
 export interface AppState {
   phase: 'idle' | 'importing' | 'analyzing' | 'done'
@@ -48,8 +41,7 @@ export interface AppState {
   downloaded: number
   stats: Stats
   progress?: JobProgress
-  /** Analyzable games, newest first, with where each one is. */
-  queue: GameRow[]
+  currentGame?: CurrentGame
   resultFilter: ResultFilter
   ranked: Ranked<Example>[]
   panelOpen: boolean
@@ -60,6 +52,8 @@ export interface AppController {
   state: Readable<AppState>
   importAndAnalyze(site: Site, username: string, filters: ImportFilters): Promise<void>
   stop(): void
+  /** Continues analyzing games left over after Stop. */
+  resume(): Promise<void>
   refresh(): Promise<void>
   /** Shows an earlier visit's games and results, with the panel folded. */
   restore(): Promise<void>
@@ -68,12 +62,12 @@ export interface AppController {
   setPanelOpen(open: boolean): void
 }
 
-function gameUrl(id: string): string | null {
-  const [source, key] = id.split(':')
-  return source === 'lichess' ? `https://lichess.org/${key}` : null
-}
+const scored = (g: Game) => (g.evals?.length ? 0 : 1)
 
-const emptyStats = (): Stats => ({ games: 0, wins: 0, draws: 0, losses: 0, analyzed: 0, skipped: 0, unreadable: 0 })
+/** Games Lichess already scored go first, as they skip scoring every position; newest first within each. */
+export const byPriority = (games: Game[]) => [...games].sort((a, b) => scored(a) - scored(b) || b.playedAt - a.playedAt)
+
+const emptyStats = (): Stats => ({ games: 0, wins: 0, draws: 0, losses: 0, analyzed: 0, pending: 0, skipped: 0, unreadable: 0 })
 
 export function createAppController(deps: {
   http: HttpClient
@@ -84,7 +78,7 @@ export function createAppController(deps: {
   now?: () => number
 }): AppController {
   const now = deps.now ?? Date.now
-  const state = writable<AppState>({ phase: 'idle', downloaded: 0, stats: emptyStats(), resultFilter: 'all', ranked: [], queue: [], panelOpen: true })
+  const state = writable<AppState>({ phase: 'idle', downloaded: 0, stats: emptyStats(), resultFilter: 'all', ranked: [], panelOpen: true })
   const removed = deps.labels.load()
   let examples: Example[] = []
   /** Examples from the game being analyzed, shown before it finishes. */
@@ -111,27 +105,21 @@ export function createAppController(deps: {
     const games = await deps.games.list()
     const byId = (gamesById = new Map(games.map(g => [g.id, g])))
     const analyses = await deps.analyses.list()
-    const found = new Map<string, number>()
-    for (const a of analyses) found.set(a.gameId, a.findings.length)
-    const prev = new Map(current().queue.map(r => [r.id, r.status]))
-    const queue: GameRow[] = games.filter(isAnalyzable).sort((a, b) => b.playedAt - a.playedAt).map(g => ({
-      id: g.id, playedAt: g.playedAt, result: g.result, player: g.player, speed: g.speed, url: gameUrl(g.id),
-      status: found.has(g.id) ? 'done' : prev.get(g.id) === 'failed' ? 'failed' : g.id === current().progress?.current ? 'analyzing' : 'queued',
-      mistakes: found.get(g.id) ?? 0,
-    }))
+    const analyzed = new Set(analyses.map(a => a.gameId))
+    const pending = games.filter(g => isAnalyzable(g) && !analyzed.has(g.id)).length
     examples = analyses.flatMap(a => {
       const g = byId.get(a.gameId)
       return g ? examplesOf(g, a) : []
     })
     const times = games.map(g => g.playedAt)
     set({
-      queue,
       stats: {
+        pending,
         games: games.length,
         wins: games.filter(g => g.result === 'win').length,
         draws: games.filter(g => g.result === 'draw').length,
         losses: games.filter(g => g.result === 'loss').length,
-        analyzed: new Set(analyses.map(a => a.gameId)).size,
+        analyzed: analyzed.size,
         first: times.length ? Math.min(...times) : undefined,
         last: times.length ? Math.max(...times) : undefined,
         skipped: report?.unsupported ?? 0,
@@ -152,8 +140,7 @@ export function createAppController(deps: {
 
   async function analyze() {
     set({ phase: 'analyzing' })
-    const games = async (): Promise<AnalysisGame[]> => (await deps.games.list()).filter(isAnalyzable)
-      .sort((a, b) => b.playedAt - a.playedAt)
+    const games = async (): Promise<AnalysisGame[]> => byPriority((await deps.games.list()).filter(isAnalyzable))
     job = createAnalysisJob({ games, analyses: deps.analyses, engine: await (engine ??= deps.engine()), settings: DEFAULT_SETTINGS })
     job.subscribe(p => {
       const g = p.current ? gamesById.get(p.current) : undefined
@@ -161,10 +148,7 @@ export function createAppController(deps: {
       set({
         progress: p,
         ...(p.error ? { error: p.error } : {}),
-        queue: current().queue.map(r =>
-          r.id === p.finished?.gameId ? { ...r, status: p.finished.status }
-          : r.id === p.current ? { ...r, status: 'analyzing', mistakes: p.step?.findings.length ?? 0 }
-          : r.status === 'analyzing' ? { ...r, status: 'queued' } : r),
+        currentGame: g && { playedAt: g.playedAt, result: g.result, player: g.player, speed: g.speed },
       })
       rerank()
       if (p.finished || !p.running) {
@@ -182,7 +166,7 @@ export function createAppController(deps: {
       await refresh()
       if (current().stats.games > 0) set({ panelOpen: false })
       // Pick up where an earlier visit stopped.
-      if (current().queue.some(r => r.status !== 'done')) await analyze()
+      if (current().stats.pending > 0) await analyze()
       else if (current().stats.games > 0) set({ phase: 'done' })
     },
     async importAndAnalyze(site, username, filters) {
@@ -198,6 +182,9 @@ export function createAppController(deps: {
       await refresh()
       if (current().stats.games > 0) set({ panelOpen: false })
       await analyze()
+    },
+    async resume() {
+      if (current().phase !== 'analyzing') await analyze()
     },
     stop() {
       importAbort?.abort()

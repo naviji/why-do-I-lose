@@ -37,9 +37,13 @@
   }
 </script>
 
-<aside class="panel" class:sheet={app.panelOpen && app.stats.games > 0}>
-  <button class="head" onclick={ontoggle} aria-expanded={app.panelOpen}>
-    <span>{app.user ? `${app.user.username} · ${app.stats.games} games` : 'Games'}</span><span aria-hidden="true">{app.panelOpen ? '▴' : '▾'}</span>
+<aside class="panel" class:sheet={app.panelOpen && app.stats.games > 0} class:rail={!app.panelOpen && app.stats.games > 0}>
+  <button class="head" onclick={ontoggle} aria-expanded={app.panelOpen} aria-label={app.panelOpen ? 'Fold the Games panel' : 'Open the Games panel'}>
+    <span class="label">{app.user ? `${app.user.username} · ${app.stats.games} games` : 'Games'}</span>
+    {#if app.phase === 'analyzing' && app.stats.analyzed + app.stats.pending}
+      <svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" /><circle class="done" cx="10" cy="10" r="8" pathLength="100" stroke-dasharray="{(app.stats.analyzed / (app.stats.analyzed + app.stats.pending)) * 100} 100" /></svg>
+    {/if}
+    <span class="arrow" aria-hidden="true">{app.panelOpen ? '▴' : '▾'}</span>
   </button>
   {#if app.panelOpen}
     <form class="body" onsubmit={submit}>
@@ -71,7 +75,7 @@
       {/if}
       {#if busy}
         <button type="button" class="btn" onclick={onstop}>Stop</button>
-        <div class="muted small">{app.phase === 'importing' ? `Downloaded ${app.downloaded} games…` : `Analyzing ${app.progress?.done ?? 0} of ${app.progress?.eligible ?? '…'}…`}</div>
+        <div class="muted small">{app.phase === 'importing' ? `Downloaded ${app.downloaded} games…` : `Analyzed ${app.stats.analyzed} of ${app.stats.analyzed + app.stats.pending}…`}</div>
       {:else}
         <button type="submit" class="btn primary" disabled={!username.trim()}>{app.stats.games ? 'Sync' : 'Import and analyze'}</button>
       {/if}
@@ -96,7 +100,7 @@
 
 <style>
   .panel { background: var(--panel); border-radius: 8px; overflow: hidden; }
-  .head { width: 100%; min-height: 48px; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; border: 0; background: var(--panel-dark); font-weight: 800; cursor: pointer; }
+  .head { width: 100%; min-height: 48px; display: flex; align-items: center; padding: 0 16px; border: 0; background: var(--panel-dark); font-weight: 800; cursor: pointer; }
   .body { padding: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
   .step { font-weight: 800; padding-top: 10px; border-top: 1px solid var(--line); }
   .step:first-child { border-top: 0; padding-top: 0; }
@@ -114,6 +118,19 @@
   .stats { display: flex; flex-direction: column; gap: 8px; }
   dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; color: var(--muted); font-size: 14px; }
   dd { margin: 0; color: var(--text); text-align: right; }
+  .head { gap: 8px; }
+  .label { margin-right: auto; }
+  .ring { width: 18px; height: 18px; transform: rotate(-90deg); flex: none; }
+  .ring circle { fill: none; stroke: var(--line); stroke-width: 3; }
+  .ring .done { stroke: var(--green); }
+  @media (min-width: 720px) {
+    .arrow { font-size: 0; }
+    .arrow::after { font-size: 14px; content: '▸'; }
+    .rail .arrow::after { content: '◂'; }
+    /* Folded: a vertical strip with the name running down it. */
+    .rail .head { flex-direction: column-reverse; justify-content: flex-end; min-height: 240px; padding: 14px 0; }
+    .rail .label { writing-mode: vertical-rl; transform: rotate(180deg); margin: 0; white-space: nowrap; }
+  }
   /* Phone, after the first import: the panel is a bottom sheet opened from the header. */
   @media (max-width: 719px) {
     .panel.sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 88vh; overflow-y: auto; z-index: 30; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, .5); }

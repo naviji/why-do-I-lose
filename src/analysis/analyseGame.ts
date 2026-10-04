@@ -70,7 +70,7 @@ export async function analyseGame(
     evals = []
     for (let ply = 0; ply < fens.length; ply++) {
       onStep?.({ stage: 'scan', done: ply, total: fens.length, findings: [] })
-      evals.push(whitePov((await search(ply)).score, ply))
+      evals.push(whitePov((await engine.evaluate(fens[ply]!, scanSettings(settings), signal)).score, ply))
     }
   }
 
@@ -95,6 +95,13 @@ export async function analyseGame(
   }
   return { gameId: game.id, engine: engine.info(), settings, status: 'done', findings }
 }
+
+/**
+ * A lighter search for scoring every position of an unscored game: it only has to find the
+ * critical moves, which then get the full search.
+ */
+export const scanSettings = (s: EngineSettings): EngineSettings =>
+  ({ ...s, depth: Math.min(s.depth, 14), nodes: Math.min(s.nodes, 250_000) })
 
 /** FEN before each ply: index i is the position after ply i (0 = start). */
 function positions(moves: string[]): string[] {

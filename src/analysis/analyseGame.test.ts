@@ -50,7 +50,8 @@ describe('analyseGame', () => {
     const withScores = await analyseGame({ ...game, evals: lichessEvals }, new FakeEngine(table), DEFAULT_SETTINGS, signal)
     const without = await analyseGame(game, engine, DEFAULT_SETTINGS, signal)
     expect(without.findings).toEqual(withScores.findings)
-    expect(engine.searches).toBe(fens.length) // every position, the start included
+    // every position (the start included) with the light scan, then both sides of each critical move in full
+    expect(engine.searches).toBe(fens.length + 2 * withScores.findings.length)
   })
 
   it('stops when aborted', async () => {

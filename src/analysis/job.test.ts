@@ -54,7 +54,9 @@ describe('analysis job', () => {
     job.start()
     expect(await finished(updates)).toMatchObject({ done: 3, eligible: 3 })
     expect((await analyses.list()).map(a => a.gameId)).toEqual(['a', 'b', 'c'])
-    expect(engine.searches - searchesBefore).toBe(2 * recorded.moves.length + 2) // b and c only, all positions each
+    // b and c only: all positions each, then a full search either side of each critical move
+    const critical = (await analyses.list())[1]!.findings.length
+    expect(engine.searches - searchesBefore).toBe(2 * (recorded.moves.length + 1 + 2 * critical))
   })
 
   it('reanalyses a game when the engine settings change', async () => {
