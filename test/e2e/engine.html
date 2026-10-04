@@ -1,0 +1,11 @@
+<!doctype html>
+<!-- Test page for the real engine: loads Stockfish and exposes it to Playwright. -->
+<html>
+  <body>
+    <script type="module">
+      import { loadEngine } from '/src/engine/loadEngine.ts'
+      window.loadEngine = loadEngine
+      window.ready = true
+    </script>
+  </body>
+</html>

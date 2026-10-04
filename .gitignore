@@ -2,3 +2,6 @@ node_modules
 dist
 *.local
 .DS_Store
+public/stockfish
+test-results
+playwright-report
