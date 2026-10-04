@@ -12,7 +12,9 @@ const ENGINE_BUILD = 'stockfish-19-lite-single'
 function stockfishAssets(): Plugin {
   return {
     name: 'stockfish-assets',
-    buildStart() {
+    // `config`, not `buildStart`: the dev server indexes public/ before buildStart runs,
+    // so files first created there on a fresh clone would 404 until a restart.
+    config() {
       const bin = dirname(createRequire(import.meta.url).resolve(`stockfish/bin/${ENGINE_BUILD}.js`))
       mkdirSync('public/stockfish', { recursive: true })
       for (const ext of ['js', 'wasm']) copyFileSync(join(bin, `${ENGINE_BUILD}.${ext}`), `public/stockfish/${ENGINE_BUILD}.${ext}`)
