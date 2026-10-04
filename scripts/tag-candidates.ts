@@ -1,28 +1,14 @@
 // Usage: npx tsx scripts/tag-candidates.ts <candidates.json>
-// Runs the ported lichess-puzzler tagger on each candidate: the player's move m
-// followed by the opponent's best line, from the opponent's point of view.
+// Tags each candidate in place (see src/tactics/tag.ts) and prints tag counts.
 import { readFileSync, writeFileSync } from 'node:fs'
-import { cook } from '../src/tactics/cook'
-import { make } from '../src/tactics/puzzle'
-
-const MAX_PLIES = 12
-const META = new Set(['equality', 'advantage', 'crushing', 'oneMove', 'short', 'long', 'veryLong'])
+import { tagMove } from '../src/tactics/tag'
 
 const [path] = process.argv.slice(2)
 if (!path) throw new Error('usage: tag-candidates <candidates.json>')
 const candidates = JSON.parse(readFileSync(path, 'utf8'))
 const counts: Record<string, number> = {}
 for (const c of candidates) {
-  // a puzzle mainline ends on the solver's move: m + an odd number of opponent plies
-  let line: string[] = c.line.slice(0, MAX_PLIES - 1)
-  if (line.length % 2 === 0) line = line.slice(0, -1)
-  if (!line.length) {
-    c.tags = []
-    continue
-  }
-  const s = c.lineScore
-  const cp = 'mate' in s ? (s.mate > 0 ? 999999 : -999999) : s.cp
-  c.tags = cook(make(c.fen, [c.move, ...line], cp)).filter(t => !META.has(t))
+  c.tags = tagMove(c)
   for (const t of c.tags) counts[t] = (counts[t] ?? 0) + 1
 }
 writeFileSync(path, JSON.stringify(candidates, null, 2) + '\n')
