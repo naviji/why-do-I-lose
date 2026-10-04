@@ -1,13 +1,12 @@
 import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
-import { MemoryAnalysisRepo } from './analysis/job'
 import { loadEngine } from './engine/loadEngine'
-import { MemoryGameRepo } from './import/importGames'
 import { fetchHttpClient } from './import/sources'
+import { IdbAnalysisRepo, IdbGameRepo, openAppDb } from './storage/indexedDb'
 import { createAppController, type LabelStore } from './ui/appController'
 
-// Removed labels survive a reload; games and analyses wait for the IndexedDB repos.
+// Games and analyses live in IndexedDB; removed labels in localStorage.
 const KEY = 'removedLabels'
 const labels: LabelStore = {
   load() {
@@ -18,13 +17,17 @@ const labels: LabelStore = {
   },
 }
 
+const db = await openAppDb()
 const controller = createAppController({
   http: fetchHttpClient,
-  games: new MemoryGameRepo(),
-  analyses: new MemoryAnalysisRepo(),
+  games: new IdbGameRepo(db),
+  analyses: new IdbAnalysisRepo(db),
   engine: () => loadEngine().catch(e => e),
   labels,
 })
+
+// Show what an earlier visit already imported and analyzed.
+void controller.restore()
 
 const app = mount(App, { target: document.getElementById('app')!, props: { controller } })
 

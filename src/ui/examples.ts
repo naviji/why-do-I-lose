@@ -22,6 +22,9 @@ export interface Example {
   replySan: string | null
   explanation: string
   gameUrl: string | null
+  /** The player's win chance (0-100, rounded) before and after the move. */
+  winBefore: number
+  winAfter: number
 }
 
 export function examplesOf(game: Game, analysis: GameAnalysis): Example[] {
@@ -52,6 +55,7 @@ export function examplesOf(game: Game, analysis: GameAnalysis): Example[] {
       out.push({
         id: `${game.id}#${f.ply}#${category}`, gameId: game.id, category, result: game.result, side: game.player,
         ply: f.ply, fen, playedSan, betterSan, replySan, explanation, gameUrl,
+        winBefore: Math.round(f.winBefore), winAfter: Math.round(f.winAfter),
       })
     }
   }

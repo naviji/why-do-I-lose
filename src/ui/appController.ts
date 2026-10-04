@@ -46,6 +46,8 @@ export interface AppController {
   importAndAnalyze(site: Site, username: string, filters: ImportFilters): Promise<void>
   stop(): void
   refresh(): Promise<void>
+  /** Shows an earlier visit's games and results, with the panel folded. */
+  restore(): Promise<void>
   removeLabel(exampleId: string): void
   setResultFilter(f: ResultFilter): void
   setPanelOpen(open: boolean): void
@@ -135,6 +137,10 @@ export function createAppController(deps: {
   return {
     state,
     refresh,
+    async restore() {
+      await refresh()
+      if (current().stats.games > 0) set({ panelOpen: false })
+    },
     async importAndAnalyze(site, username, filters) {
       job?.stop()
       importAbort = new AbortController()

@@ -13,25 +13,25 @@ const analysis = (findings: GameAnalysis['findings']): GameAnalysis => ({
 
 describe('examplesOf', () => {
   it('makes one example per category of each finding, with the position before the move in SAN', () => {
-    const ex = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: 'g1f3', line: ['b8c6'], categories: ['hangingPiece', 'fork'] }]))
+    const ex = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: 'g1f3', line: ['b8c6'], categories: ['hangingPiece', 'fork'], winBefore: 51.2, winAfter: 12.4 }]))
     expect(ex.map(e => e.category)).toEqual(['hangingPiece', 'fork'])
     expect(ex[0]).toMatchObject({
       gameId: 'lichess:abc', side: 'white', ply: 3, playedSan: 'Qh5', betterSan: 'Nf3', replySan: 'Nc6',
       fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2', result: 'loss',
-      gameUrl: 'https://lichess.org/abc/white#3',
+      gameUrl: 'https://lichess.org/abc/white#3', winBefore: 51, winAfter: 12,
     })
     expect(ex[0].id).not.toBe(ex[1].id)
   })
   it('explains the move in one line', () => {
-    const [e] = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: 'g1f3', line: ['b8c6'], categories: ['fork'] }]))
+    const [e] = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: 'g1f3', line: ['b8c6'], categories: ['fork'], winBefore: 50, winAfter: 10 }]))
     expect(e.explanation).toBe('After Qh5 the opponent had Nc6. Better was Nf3.')
   })
   it('leaves out what it does not know', () => {
-    const [e] = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: null, line: [], categories: ['positionalMistake'] }]))
+    const [e] = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: null, line: [], categories: ['positionalMistake'], winBefore: 50, winAfter: 10 }]))
     expect(e.explanation).toBe('Qh5 was a mistake.')
   })
   it('has no game link for Chess.com', () => {
-    const [e] = examplesOf({ ...game, id: 'chesscom:9', source: 'chesscom' }, analysis([{ ply: 3, played: 'd1h5', better: null, line: [], categories: ['x'] }]))
+    const [e] = examplesOf({ ...game, id: 'chesscom:9', source: 'chesscom' }, analysis([{ ply: 3, played: 'd1h5', better: null, line: [], categories: ['x'], winBefore: 50, winAfter: 10 }]))
     expect(e.gameUrl).toBeNull()
   })
 })
@@ -46,7 +46,7 @@ describe('filterByResult', () => {
 
 describe('visibleExamples', () => {
   it('drops removed labels', () => {
-    const ex = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: null, line: [], categories: ['a', 'b'] }]))
+    const ex = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: null, line: [], categories: ['a', 'b'], winBefore: 50, winAfter: 10 }]))
     expect(visibleExamples(ex, new Set([ex[0].id])).map(e => e.category)).toEqual(['b'])
   })
 })

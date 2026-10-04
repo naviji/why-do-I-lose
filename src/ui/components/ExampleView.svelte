@@ -19,6 +19,7 @@
       <div class="muted small">Example {index + 1} of {examples.length} · move {moveNo(ex.ply)} as {ex.side === 'white' ? 'White' : 'Black'} · {ex.result}
         {#if ex.gameUrl}· <a href={ex.gameUrl} target="_blank" rel="noopener">game</a>{/if}</div>
       <p class="line">{ex.explanation}</p>
+      <div class="muted small">Win chance {ex.winBefore}% → {ex.winAfter}%.</div>
       <div class="actions">
         <a class="btn primary" href={analysisUrl(ex.fen, ex.side)} target="_blank" rel="noopener">Analyze on Lichess</a>
         {#if examples.length > 1}<button class="btn" onclick={() => (index = (index + 1) % examples.length)}>Next example</button>{/if}

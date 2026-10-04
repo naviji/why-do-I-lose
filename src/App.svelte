@@ -8,8 +8,8 @@
 
 <header>
   <div class="name">Why Do I Lose?</div>
-  {#if $view.user}
-    <button class="who" onclick={() => controller.setPanelOpen(!$view.panelOpen)}>{$view.user.username} · {$view.stats.games} ▾</button>
+  {#if $view.stats.games}
+    <button class="who" onclick={() => controller.setPanelOpen(!$view.panelOpen)}>{$view.user?.username ?? 'Games'} · {$view.stats.games} ▾</button>
   {/if}
 </header>
 {#if $view.phase === 'analyzing' && $view.progress?.eligible}

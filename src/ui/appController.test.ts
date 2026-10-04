@@ -87,7 +87,7 @@ describe('appController', () => {
     const ply = g.player === 'white' ? 1 : 2
     await analyses.put({
       gameId: g.id, engine: flatEngine.info(), settings: { depth: 1, nodes: 1, hashMb: 1 }, status: 'done',
-      findings: [{ ply, played: g.moves[ply - 1], better: null, line: [], categories: ['fork'] }],
+      findings: [{ ply, played: g.moves[ply - 1], better: null, line: [], categories: ['fork'], winBefore: 50, winAfter: 10 }],
     })
     await app.refresh()
     const ranked = get(app.state).ranked
@@ -95,6 +95,16 @@ describe('appController', () => {
     expect(fork.games).toBe(1)
     app.removeLabel(fork.examples[0].id)
     expect(get(app.state).ranked.find(r => r.category === 'fork')).toBeUndefined()
+  })
+
+  it('restores an earlier visit with the panel folded', async () => {
+    const { app, games, analyses } = setup()
+    await app.importAndAnalyze('lichess', 'kramford', defaultish)
+    await until(() => get(app.state).phase === 'done')
+    const again = createAppController({ http: http(), games, analyses, engine: async () => flatEngine, labels: memoryLabels() })
+    await again.restore()
+    expect(get(again.state).stats.games).toBe(10)
+    expect(get(again.state).panelOpen).toBe(false)
   })
 
   it('reports an engine that will not load, and keeps the games', async () => {
