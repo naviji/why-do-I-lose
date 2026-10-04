@@ -27,6 +27,12 @@ describe('exposedKingLate', () => {
     expect(exposedKingLate(make(fen, 'g8f8 d2d7 b7b5 b3c5 e6e7 d7e7 f8e7 e3g5 e7e8'))).toBe(false)
   })
 
+  it('ignores an endgame, where open kings are normal', () => {
+    // kramford game WF4X5jQO, move 35: rook ending, …Rxa2 Re1 lets a rook check through the open g-file
+    const fen = '4r2k/p2R2p1/r5Pp/3p4/2pP1P2/5K2/PP6/7R b - - 0 35'
+    expect(exposedKingLate(make(fen, 'a6a2 h1e1 e8c8 e1e7 a2b2 e7g7 b2b1 g7h7 h8g8'))).toBe(false)
+  })
+
   it('ignores an endgame king that never had cover', () => {
     // kramford game Xjs85bVX, move 50: rook-and-bishop checks on a bare king
     const fen = '8/3b4/5k2/2pr1p1R/8/8/5K2/8 w - - 0 50'

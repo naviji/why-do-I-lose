@@ -24,11 +24,19 @@ export function shelterGone(board: Board, color: Color): boolean {
   return true
 }
 
+const PIECE_VALUES: Record<string, number> = { knight: 3, bishop: 3, rook: 5, queen: 9 }
+/** Endgame: both sides' pieces (not pawns or kings) add up to 26 or less, against 62 at the start. */
+export function isEndgame(board: Board): boolean {
+  let total = 0
+  for (const [, piece] of board.pieceMap()) total += PIECE_VALUES[piece.role] ?? 0
+  return total <= 26
+}
+
 export function exposedKingLate(puzzle: Puzzle): boolean {
   const player = opposite(puzzle.pov)
   // only a cover that existed before the player's move and was lost in the line
   const start = puzzle.game.board()
-  if (shelterGone(start, player)) return false
+  if (isEndgame(start) || shelterGone(start, player)) return false
   const home = start.king(player)
   // opponent moves, not counting the last one (as in cook.py)
   for (let k = 1; k < puzzle.mainline.length - 1; k += 2) {
