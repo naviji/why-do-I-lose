@@ -2,6 +2,7 @@
 // Writes a markdown table of candidates for hand-labeling: up to PER_TAG examples
 // per motif plus a few untagged ones. Only candidates that leave the player losing
 // by Stockfish's eval (below DEFAULT_LOSING_BELOW) are included.
+import { categories } from '../src/tactics/categories'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { parseUci } from 'chessops/util'
 import { makeSanAndPlay } from 'chessops/san'
@@ -13,7 +14,6 @@ import { DEFAULT_LOSING_BELOW } from '../src/core/criticalMoves'
 const PER_TAG = 6
 const UNTAGGED = 10
 // position descriptions rather than mistakes
-const IGNORE = new Set(['castling', 'quietMove', 'mateIn1', 'mateIn2', 'mateIn3', 'mateIn4', 'mateIn5', 'rookEndgame', 'bishopEndgame', 'knightEndgame', 'queenEndgame', 'queenRookEndgame', 'promotion', 'enPassant'])
 
 // Pass a previous batch as <keep.md> to keep its rows, so row numbers people refer to stay put.
 const [inPath, outPath, keepPath] = process.argv.slice(2)
@@ -22,7 +22,7 @@ const all = JSON.parse(readFileSync(inPath, 'utf8'))
 
 // lineScore is from the opponent's (side to move) point of view
 const playerWinAfter = (x: any) => 100 - winPercent(x.lineScore as Score, 'white')
-const motifs = (x: any): string[] => (x.tags ?? []).filter((t: string) => !IGNORE.has(t))
+const motifs = (x: any): string[] => categories(x.tags ?? []).filter(t => t !== 'positionalMistake')
 
 const per: Record<string, number> = {}
 const picked: number[] = []
@@ -53,7 +53,7 @@ const lichessWin = (x: any, s: Score) => winPercent(s, x.player)
 let md = `# Labeling batch 1 (v2)\n\nOnly moves that dropped your win chance by more than 10 points **and** left you below ${DEFAULT_LOSING_BELOW}% (by Stockfish) are included. "Tags" is what the ported lichess-puzzler tagger finds in the opponent's best line.\n\nIn the last column, write **✓** if the tags are right, **✗** if a tag is wrong (say which), or add a missing motif.\n\n| # | Position | You played | Your win chance | Opponent's best line | Tags | Your call |\n|---|---|---|---|---|---|---|\n`
 for (const i of picked) {
   const x = all[i]
-  md += `| ${i} | [move ${Math.ceil(x.ply / 2)}](${x.url}) | ${x.san} | ${pct(lichessWin(x, x.evalBefore))} → ${pct(playerWinAfter(x))} | ${sanLine(x)} | ${motifs(x).join(', ') || 'none'} | |\n`
+  md += `| ${i} | [move ${Math.ceil(x.ply / 2)}](${x.url}) | ${x.san} | ${pct(lichessWin(x, x.evalBefore))} → ${pct(playerWinAfter(x))} | ${sanLine(x)} | ${categories(x.tags ?? []).join(', ')} | |\n`
 }
 writeFileSync(outPath, md)
 const eligible = all.filter((x: any) => x.line && playerWinAfter(x) < DEFAULT_LOSING_BELOW)
