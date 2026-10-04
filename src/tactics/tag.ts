@@ -6,6 +6,7 @@ import { defensiveMove } from './defensiveMove'
 import { discoveredAttackOnPiece } from './discovered'
 import { counting } from './exchange'
 import { exposedKingLate } from './exposedKing'
+import { hangingAfterCheck } from './hangingAfterCheck'
 import { hangingPawn } from './hangingPawn'
 import { make } from './puzzle'
 import { trimToGain } from './trim'
@@ -35,6 +36,7 @@ export function tagMove({ fen, move, line: engineLine, lineScore, better }: Crit
   const cp = 'mate' in lineScore ? (lineScore.mate > 0 ? 999999 : -999999) : lineScore.cp
   const puzzle = make(fen, [move, ...line], cp)
   let tags: string[] = cook(puzzle).filter(t => !META.has(t))
+  if (!tags.includes('hangingPiece') && hangingAfterCheck(puzzle)) tags.push('hangingPiece')
   // a threat already on the board is a missed defence, not something the move left hanging
   if (defensiveMove({ fen, move, line: full, better })) {
     tags = tags.filter(t => t !== 'hangingPiece')
