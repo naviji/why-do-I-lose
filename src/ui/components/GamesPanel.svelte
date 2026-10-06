@@ -17,6 +17,32 @@
   let maxElo = $state('')
   let showFilters = $state(false)
   let busy = $derived(app.phase === 'importing' || app.phase === 'analyzing')
+  // Phone sheet: drag the header down to fold it.
+  let dragY = $state(0)
+  let startY: number | null = null
+  let dragged = false
+  const isSheet = () => app.panelOpen && app.stats.games > 0 && matchMedia('(max-width: 719px)').matches
+  function dragStart(e: PointerEvent) {
+    if (!isSheet()) return
+    startY = e.clientY
+    dragged = false
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+  function dragMove(e: PointerEvent) {
+    if (startY === null) return
+    dragY = Math.max(0, e.clientY - startY)
+    if (dragY > 6) dragged = true
+  }
+  function dragEnd() {
+    if (startY === null) return
+    startY = null
+    if (dragY > 80) ontoggle()
+    dragY = 0
+  }
+  function headClick() {
+    if (dragged) { dragged = false; return }
+    ontoggle()
+  }
   const day = (t?: number) => (t ? new Date(t).toLocaleDateString() : '–')
 
   function pickSite(s: Site) {
@@ -37,8 +63,8 @@
   }
 </script>
 
-<aside class="panel" class:sheet={app.panelOpen && app.stats.games > 0} class:rail={!app.panelOpen && app.stats.games > 0}>
-  <button class="head" onclick={ontoggle} aria-expanded={app.panelOpen} aria-label={app.panelOpen ? 'Fold the Games panel' : 'Open the Games panel'}>
+<aside class="panel" class:sheet={app.panelOpen && app.stats.games > 0} class:rail={!app.panelOpen && app.stats.games > 0} style:transform={dragY ? `translateY(${dragY}px)` : null}>
+  <button class="head" onclick={headClick} onpointerdown={dragStart} onpointermove={dragMove} onpointerup={dragEnd} onpointercancel={dragEnd} aria-expanded={app.panelOpen} aria-label={app.panelOpen ? 'Fold the Games panel' : 'Open the Games panel'}>
     <span class="label">{app.user ? `${app.user.username} · ${app.stats.games} games` : 'Games'}</span>
     {#if app.phase === 'analyzing' && app.stats.analyzed + app.stats.pending}
       <svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" /><circle class="done" cx="10" cy="10" r="8" pathLength="100" stroke-dasharray="{(app.stats.analyzed / (app.stats.analyzed + app.stats.pending)) * 100} 100" /></svg>
@@ -134,5 +160,7 @@
   /* Phone, after the first import: the panel is a bottom sheet opened from the header. */
   @media (max-width: 719px) {
     .panel.sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 88vh; overflow-y: auto; z-index: 30; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, .5); }
+    .panel.sheet .head { touch-action: none; position: relative; padding-top: 10px; }
+    .panel.sheet .head::before { content: ''; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--muted); }
   }
 </style>

@@ -22,6 +22,10 @@ describe('examplesOf', () => {
     })
     expect(ex[0].id).not.toBe(ex[1].id)
   })
+  it("gives the opponent's move into the position, for the board's arrow", () => {
+    const [e] = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: null, line: [], categories: ['fork'], winBefore: 50, winAfter: 10 }]))
+    expect(e!.lastMove).toEqual(['e7', 'e5'])
+  })
   it('explains the move in one line', () => {
     const [e] = examplesOf(game, analysis([{ ply: 3, played: 'd1h5', better: 'g1f3', line: ['b8c6'], categories: ['fork'], winBefore: 50, winAfter: 10 }]))
     expect(e.explanation).toBe('After Qh5 the opponent had Nc6. Better was Nf3.')

@@ -1,22 +1,34 @@
 <script lang="ts">
-  import { boardSquares, type Side } from '../viewModel'
-  let { fen, orientation }: { fen: string; orientation: Side } = $props()
-  const GLYPH: Record<string, string> = { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' }
-  let squares = $derived(boardSquares(fen, orientation))
+  // Lichess's own board (chessground) with its brown board and cburnett pieces.
+  import { Chessground } from '@lichess-org/chessground'
+  import type { Api } from '@lichess-org/chessground/api'
+  import type { Key } from '@lichess-org/chessground/types'
+  import '@lichess-org/chessground/assets/chessground.base.css'
+  import '@lichess-org/chessground/assets/chessground.brown.css'
+  import '@lichess-org/chessground/assets/chessground.cburnett.css'
+  import type { Side } from '../viewModel'
+  let { fen, orientation, lastMove = null }: { fen: string; orientation: Side; lastMove?: [string, string] | null } = $props()
+  let el: HTMLElement
+  let cg: Api | undefined
+
+  $effect(() => {
+    const config = {
+      fen,
+      orientation,
+      viewOnly: true,
+      coordinates: false,
+      lastMove: (lastMove ?? undefined) as Key[] | undefined,
+      drawable: { enabled: false, autoShapes: lastMove ? [{ orig: lastMove[0] as Key, dest: lastMove[1] as Key, brush: 'paleBlue' }] : [] },
+    }
+    if (cg) cg.set(config)
+    else cg = Chessground(el, config)
+  })
+  $effect(() => () => cg?.destroy())
 </script>
 
-<div class="board" role="img" aria-label="Position before your move">
-  {#each squares as s (s.square)}
-    <div class="sq" class:light={s.light}>
-      {#if s.piece}<span class={s.piece.color}>{GLYPH[s.piece.role]}</span>{/if}
-    </div>
-  {/each}
-</div>
+<div class="wrap" role="img" aria-label="Position before your move"><div class="cg" bind:this={el}></div></div>
 
 <style>
-  .board { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); aspect-ratio: 1; border-radius: 4px; overflow: hidden; width: 100%; container-type: inline-size; }
-  .sq { background: var(--dark); display: flex; align-items: center; justify-content: center; font-size: 10cqi; line-height: 1; }
-  .sq.light { background: var(--light); }
-  .white { color: #fff; text-shadow: 0 0 2px #000, 0 0 1px #000; }
-  .black { color: #000; }
+  .wrap { width: 100%; aspect-ratio: 1; position: relative; border-radius: 4px; overflow: hidden; }
+  .cg { position: absolute; inset: 0; }
 </style>

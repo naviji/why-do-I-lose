@@ -17,6 +17,8 @@ export interface Example {
   side: Game['player']
   ply: number
   fen: string
+  /** The opponent's move that led to `fen`, as [from, to] squares. */
+  lastMove: [string, string] | null
   playedSan: string
   betterSan: string | null
   replySan: string | null
@@ -54,7 +56,7 @@ export function examplesOf(game: Game, analysis: GameAnalysis): Example[] {
     for (const category of f.categories) {
       out.push({
         id: `${game.id}#${f.ply}#${category}`, gameId: game.id, category, result: game.result, side: game.player,
-        ply: f.ply, fen, playedSan, betterSan, replySan, explanation, gameUrl,
+        ply: f.ply, fen, lastMove: lastMoveOf(game.moves[f.ply - 2]), playedSan, betterSan, replySan, explanation, gameUrl,
         winBefore: Math.round(f.winBefore), winAfter: Math.round(f.winAfter),
       })
     }
@@ -68,4 +70,8 @@ export function filterByResult<T extends { result: string }>(examples: T[], filt
 
 export function visibleExamples<T extends { id: string }>(examples: T[], removed: ReadonlySet<string>): T[] {
   return examples.filter(e => !removed.has(e.id))
+}
+
+function lastMoveOf(uci: string | undefined): [string, string] | null {
+  return uci && uci.length >= 4 ? [uci.slice(0, 2), uci.slice(2, 4)] : null
 }

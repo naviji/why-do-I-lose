@@ -14,7 +14,7 @@
     <div class="top">
       <button class="btn ghost back" onclick={onclose} aria-label="Back to results">← {categoryName(ex.category)}</button>
     </div>
-    <div class="board"><Board fen={ex.fen} orientation={ex.side} /></div>
+    <div class="board"><Board fen={ex.fen} orientation={ex.side} lastMove={ex.lastMove} /></div>
     <div class="text">
       <div class="muted small">Example {index + 1} of {examples.length} · move {moveNo(ex.ply)} as {ex.side === 'white' ? 'White' : 'Black'} · {ex.result}
         {#if ex.gameUrl}· <a href={ex.gameUrl} target="_blank" rel="noopener">game</a>{/if}</div>
